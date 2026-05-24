@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Panel de Administración | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --g: #006633;
+      --gd: #004d26;
+      --gm: #008040;
+      --gl: #eef7f2;
+      --g2: #d0e9dc;
+      --y: #FFD100;
+      --yd: #b89600;
+      --wh: #ffffff;
+      --bg: #f5f7f5;
+      --tx: #0e1c12;
+      --tm: #3a5544;
+      --bd: #c0d9c8;
+      --r: 20px;
+      --rs: 12px;
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 20px 35px -12px rgba(0, 60, 20, 0.15);
+      --shadow-lg: 0 25px 45px -12px rgba(0, 0, 0, 0.2);
+      --transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, #e8efe5 100%);
+      color: var(--tx);
+      min-height: 100vh;
+    }
+
+    /* Fondo decorativo sutil */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="15" cy="15" r="2" fill="%23006633" opacity="0.04"/><circle cx="85" cy="40" r="3" fill="%23006633" opacity="0.03"/><circle cx="50" cy="85" r="2.5" fill="%23FFD100" opacity="0.05"/></svg>');
+      background-repeat: repeat;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ========== NAVBAR ========== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(192, 217, 200, 0.5);
+      padding: 0 1rem;
+    }
+    .nav-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 1.5rem;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      transition: transform 0.2s;
+    }
+    .logo:hover {
+      transform: scale(1.02);
+    }
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 14px rgba(0, 102, 51, 0.2);
+    }
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--tx);
+    }
+    .logo-text strong {
+      color: var(--g);
+    }
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .user-badge {
+      background: var(--gl);
+      padding: 0.4rem 1rem;
+      border-radius: 40px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--g);
+      border: 1px solid var(--bd);
+    }
+
+    /* ========== ADMIN LAYOUT ========== */
+    .admin-layout {
+      display: flex;
+      max-width: 1400px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      gap: 1.5rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========== SIDEBAR ========== */
+    .sidebar {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--wh);
+      border-radius: 28px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--bd);
+      overflow: hidden;
+      position: sticky;
+      top: 90px;
+      height: fit-content;
+      transition: var(--transition);
+    }
+    .sidebar-header {
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      padding: 1.8rem 1.5rem;
+      text-align: center;
+      color: white;
+    }
+    .sidebar-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      margin-bottom: 0.3rem;
+    }
+    .sidebar-header p {
+      font-size: 0.7rem;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .sidebar-nav {
+      list-style: none;
+      padding: 1rem 0;
+    }
+    .sidebar-nav li a {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0.9rem 1.5rem;
+      color: var(--tm);
+      text-decoration: none;
+      transition: var(--transition);
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .sidebar-nav li a i {
+      font-size: 1.2rem;
+      width: 24px;
+    }
+    .sidebar-nav li a:hover {
+      background: var(--gl);
+      color: var(--g);
+      padding-left: 1.8rem;
+    }
+    .sidebar-nav li a.active {
+      background: linear-gradient(90deg, var(--gl), transparent);
+      color: var(--g);
+      border-right: 3px solid var(--g);
+      font-weight: 600;
+    }
+    .sidebar-footer {
+      padding: 1rem 1.5rem 1.5rem;
+      border-top: 1px solid var(--bd);
+      margin-top: 0.5rem;
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .admin-main {
+      flex: 1;
+      min-width: 0;
+    }
+
+    /* ========== TOP BAR ========== */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      padding: 1rem 1.5rem;
+      background: var(--wh);
+      border-radius: 20px;
+      border: 1px solid var(--bd);
+    }
+    .page-title h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--tx);
+    }
+    .page-title p {
+      font-size: 0.8rem;
+      color: var(--tm);
+    }
+
+    /* ========== STATS CARDS ========== */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1.2rem;
+      margin-bottom: 2rem;
+    }
+    .stat-card {
+      background: var(--wh);
+      border-radius: 20px;
+      padding: 1.5rem;
+      border: 1px solid var(--bd);
+      transition: var(--transition);
+      position: relative;
+      overflow: hidden;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--g), var(--y));
+    }
+    .stat-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+    .stat-card.highlight {
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      color: white;
+    }
+    .stat-card.highlight .stat-icon,
+    .stat-card.highlight .stat-num,
+    .stat-card.highlight .stat-label {
+      color: white;
+    }
+    .stat-icon {
+      font-size: 2rem;
+      margin-bottom: 0.8rem;
+    }
+    .stat-num {
+      font-family: 'Playfair Display', serif;
+      font-size: 2rem;
+      font-weight: 800;
+      color: var(--g);
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tm);
+    }
+
+    /* ========== PANELES ========== */
+    .panel {
+      background: var(--wh);
+      border-radius: 20px;
+      border: 1px solid var(--bd);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem 1.5rem;
+      background: var(--gl);
+      border-bottom: 1px solid var(--bd);
+    }
+    .panel-header h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--g);
+    }
+    .panel-body {
+      padding: 1.2rem 1.5rem;
+    }
+
+    /* ========== LISTA DE PEDIDOS ========== */
+    .orders-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.8rem;
+    }
+    .order-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--bg);
+      border-radius: 16px;
+      transition: var(--transition);
+    }
+    .order-item:hover {
+      background: var(--gl);
+      transform: translateX(4px);
+    }
+    .order-info {
+      flex: 1;
+    }
+    .order-num {
+      font-weight: 700;
+      font-size: 1rem;
+      color: var(--tx);
+    }
+    .order-table {
+      font-size: 0.75rem;
+      color: var(--tm);
+    }
+    .order-time {
+      font-size: 0.7rem;
+      color: var(--tm);
+    }
+
+    /* ========== TABLA DE DATOS ========== */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .data-table th {
+      text-align: left;
+      padding: 0.8rem 0.5rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tm);
+      border-bottom: 1.5px solid var(--bd);
+    }
+    .data-table td {
+      padding: 0.9rem 0.5rem;
+      border-bottom: 1px solid var(--g2);
+      font-size: 0.85rem;
+    }
+    .data-table tr:last-child td {
+      border-bottom: none;
+    }
+    .table-actions {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    /* ========== BADGES DE ESTADO ========== */
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 40px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .badge-pendiente { background: #fff9e6; color: #c98b00; }
+    .badge-en_preparacion { background: #e8f0fe; color: #1e6f9f; }
+    .badge-listo { background: #e6f7ec; color: #2e7d32; }
+    .badge-entregado { background: #f0f2f0; color: #5e6b5e; }
+
+    /* ========== BOTONES ========== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1.2rem;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.8rem;
+      text-decoration: none;
+      transition: var(--transition);
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 102, 51, 0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 102, 51, 0.3);
+    }
+    .btn-secondary {
+      background: var(--wh);
+      color: var(--tx);
+      border: 1px solid var(--bd);
+    }
+    .btn-secondary:hover {
+      border-color: var(--g);
+      background: var(--gl);
+    }
+    .btn-success {
+      background: #2e7d32;
+      color: white;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--g);
+      border: 1px solid var(--bd);
+    }
+    .btn-ghost:hover {
+      border-color: var(--g);
+      background: rgba(0, 102, 51, 0.05);
+    }
+
+    /* ========== FORMULARIOS ========== */
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 0.7rem 1rem;
+      border: 1.5px solid var(--bd);
+      border-radius: 12px;
+      font-family: inherit;
+      font-size: 0.85rem;
+      transition: var(--transition);
+    }
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      outline: none;
+      border-color: var(--g);
+      box-shadow: 0 0 0 3px rgba(0, 102, 51, 0.1);
+    }
+    label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      color: var(--tm);
+    }
+
+    /* ========== MODAL ========== */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+    .modal-box {
+      background: var(--wh);
+      border-radius: 28px;
+      padding: 2rem;
+      max-width: 550px;
+      width: 100%;
+      animation: modalIn 0.25s ease;
+    }
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.95) translateY(10px); }
+      to { opacity: 1; transform: none; }
+    }
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      color: var(--tm);
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 900px) {
+      .admin-layout {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        position: static;
+      }
+      .sidebar-nav {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.3rem;
+        padding: 0.8rem;
+      }
+      .sidebar-nav li a {
+        padding: 0.5rem 1rem;
+        border-radius: 40px;
+      }
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ========== NAVBAR ========== -->
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">🍽️</div>
+      <span class="logo-text">Restaurante <strong>SENA</strong></span>
+    </a>
+    <div class="user-info">
+      <span class="user-badge" id="userBadge"></span>
+      <button onclick="doLogout()" class="btn btn-ghost">
+        <i class="ti ti-logout"></i> Salir
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== ADMIN LAYOUT ========== -->
+<div class="admin-layout">
+  
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <h3>Panel de Control</h3>
+      <p>Administración completa</p>
+    </div>
+    <ul class="sidebar-nav">
+      <li><a href="#" onclick="showSection('dashboard')" class="active" id="nav-dashboard">
+        <i class="ti ti-dashboard"></i> Dashboard
+      </a></li>
+      <li><a href="#" onclick="showSection('pedidos')" id="nav-pedidos">
+        <i class="ti ti-shopping-cart"></i> Pedidos Activos
+      </a></li>
+      <li><a href="#" onclick="showSection('menu')" id="nav-menu">
+        <i class="ti ti-tools-kitchen-2"></i> Gestionar Menú
+      </a></li>
+      <li><a href="#" onclick="showSection('reportes')" id="nav-reportes">
+        <i class="ti ti-chart-bar"></i> Reportes
+      </a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <a href="menu.html?mesa=admin" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+        <i class="ti ti-eye"></i> Ver Menú Público
+      </a>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="admin-main">
+    
+    <!-- ========== SECCIÓN DASHBOARD ========== -->
+    <section id="sec-dashboard">
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Dashboard</h1>
+          <p id="fechaHoy"></p>
+        </div>
+        <button onclick="seedDemoOrders()" class="btn btn-secondary">
+          <i class="ti ti-plus"></i> Generar Pedidos Demo
+        </button>
+      </div>
+
+      <div class="stats-grid" id="statsGrid"></div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3><i class="ti ti-clock"></i> Pedidos Recientes</h3>
+          <button onclick="showSection('pedidos')" class="btn btn-ghost" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
+            Ver todos <i class="ti ti-arrow-right"></i>
+          </button>
+        </div>
+        <div class="panel-body" id="recentOrders"></div>
+      </div>
+    </section>
+
+    <!-- ========== SECCIÓN PEDIDOS ========== -->
+    <section id="sec-pedidos" style="display: none;">
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Pedidos Activos</h1>
+          <p>Gestión de pedidos en tiempo real</p>
+        </div>
+        <select id="filterEstado" onchange="renderPedidos()" class="form-select" style="width: auto;">
+          <option value="all">Todos los estados</option>
+          <option value="pendiente">⏳ Pendiente</option>
+          <option value="en_preparacion">🔥 En Preparación</option>
+          <option value="listo">✅ Listo</option>
+          <option value="entregado">✓ Entregado</option>
+        </select>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body" id="pedidosList"></div>
+      </div>
+    </section>
+
+    <!-- ========== SECCIÓN MENÚ ========== -->
+    <section id="sec-menu" style="display: none;">
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Gestionar Menú</h1>
+          <p>CRUD completo de productos</p>
+        </div>
+        <button onclick="openProductModal()" class="btn btn-primary">
+          <i class="ti ti-plus"></i> Nuevo Producto
+        </button>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <h3><i class="ti ti-search"></i> Buscar producto</h3>
+        </div>
+        <div class="panel-body">
+          <input type="search" id="menuSearch" class="form-input" placeholder="🔍 Buscar por nombre o categoría..." oninput="renderProductsTable()">
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body" style="overflow-x: auto;">
+          <table class="data-table">
+            <thead>
+              <tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr>
+            </thead>
+            <tbody id="menuTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== SECCIÓN REPORTES ========== -->
+    <section id="sec-reportes" style="display: none;">
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Reportes</h1>
+          <p>Estadísticas y análisis del negocio</p>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem;">
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-chart-pie"></i> Ventas por Categoría</h3></div>
+          <div class="panel-body" id="catReport"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-chart-donut"></i> Estados de Pedidos</h3></div>
+          <div class="panel-body" id="estadoReport"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-summary"></i> Resumen General</h3></div>
+          <div class="panel-body" id="generalReport"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<!-- ========== MODAL DE PRODUCTOS ========== -->
+<div id="productModal" class="modal-overlay" onclick="closeProductModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <button class="modal-close" onclick="closeProductModal()">✕</button>
+    <h2 id="modalProdTitle" style="margin-bottom: 0.5rem;">Nuevo Producto</h2>
+    <p id="modalProdSub" style="color: var(--tm); margin-bottom: 1.5rem;">Completa los datos del producto</p>
+
+    <form id="productForm" onsubmit="return saveProduct(event)">
+      <input type="hidden" name="action" id="prodAction" value="crear">
+      <input type="hidden" name="id" id="prodId" value="">
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nombre del Producto *</label>
+          <input type="text" id="prodNombre" class="form-input" placeholder="Ej: Bandeja Paisa" required>
+        </div>
+        <div class="form-group">
+          <label>Emoji/Ícono</label>
+          <input type="text" id="prodEmoji" class="form-input" placeholder="🍛" maxlength="4">
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoría *</label>
+          <select id="prodCat" class="form-select" required>
+            <option value="">Seleccionar...</option>
+            <option value="Entradas">🍢 Entradas</option>
+            <option value="Principales">🍽 Principales</option>
+            <option value="Bebidas">🥤 Bebidas</option>
+            <option value="Postres">🍰 Postres</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Precio (COP) *</label>
+          <input type="number" id="prodPrecio" class="form-input" placeholder="25000" min="1000" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Descripción</label>
+        <textarea id="prodDesc" class="form-textarea" rows="3" placeholder="Descripción del plato..."></textarea>
+      </div>
+
+      <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
+        <button type="button" onclick="closeProductModal()" class="btn btn-ghost">Cancelar</button>
+        <button type="submit" class="btn btn-primary">Guardar Producto</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ========== MODAL DE CONFIRMACIÓN ========== -->
+<div id="deleteModal" class="modal-overlay" onclick="closeDeleteModal(event)">
+  <div class="modal-box" style="max-width: 400px; text-align: center;" onclick="event.stopPropagation()">
+    <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
+    <h3 style="margin-bottom: 0.5rem;">¿Eliminar producto?</h3>
+    <p style="color: var(--tm); margin-bottom: 1.5rem;">Esta acción no se puede deshacer.</p>
+    <div style="display: flex; gap: 1rem; justify-content: center;">
+      <button onclick="closeDeleteModal()" class="btn btn-ghost">Cancelar</button>
+      <button id="confirmDeleteBtn" class="btn btn-danger">Sí, eliminar</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/main.js"></script>
+<script src="js/api.js"></script>
+
+<script>
+  // ============================================================
+  // VERIFICACIÓN DE AUTENTICACIÓN
+  // ============================================================
+  requireAuth();
+
+  const user = getUser();
+  if (user) {
+    document.getElementById('userBadge').innerHTML = `<i class="ti ti-user"></i> ${user.nombre} · ${user.rol}`;
+  }
+  document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-CO', { 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+  });
+
+  // ============================================================
+  // NAVEGACIÓN ENTRE SECCIONES
+  // ============================================================
+  function showSection(name) {
+    const sections = ['dashboard', 'pedidos', 'menu', 'reportes'];
+    sections.forEach(s => {
+      const sec = document.getElementById('sec-' + s);
+      if (sec) sec.style.display = 'none';
+      const nav = document.getElementById('nav-' + s);
+      if (nav) nav.classList.remove('active');
+    });
+    
+    document.getElementById('sec-' + name).style.display = 'block';
+    const activeNav = document.getElementById('nav-' + name);
+    if (activeNav) activeNav.classList.add('active');
+    
+    // Cargar datos específicos
+    if (name === 'dashboard') renderDashboard();
+    if (name === 'pedidos') renderPedidos();
+    if (name === 'menu') renderProductsTable();
+    if (name === 'reportes') renderReportes();
+  }
+
+  // ============================================================
+  // DASHBOARD
+  // ============================================================
+  function renderDashboard() {
+    const pedidos = getPedidos();
+    const hoy = new Date().toDateString();
+    const pedidosHoy = pedidos.filter(p => new Date(p.fecha).toDateString() === hoy);
+    const totalVentas = pedidosHoy.reduce((s, p) => s + (p.total || 0), 0);
+    const activos = pedidos.filter(p => ['pendiente', 'en_preparacion', 'listo'].includes(p.estado)).length;
+    const productosActivos = getProductos().filter(p => p.disponible).length;
+
+    document.getElementById('statsGrid').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon">📋</div>
+        <div class="stat-num">${pedidosHoy.length}</div>
+        <div class="stat-label">Pedidos hoy</div>
+      </div>
+      <div class="stat-card highlight">
+        <div class="stat-icon">💰</div>
+        <div class="stat-num">${formatCOP(totalVentas)}</div>
+        <div class="stat-label">Ventas hoy</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-num">${activos}</div>
+        <div class="stat-label">Pedidos activos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🍽</div>
+        <div class="stat-num">${productosActivos}</div>
+        <div class="stat-label">Platos disponibles</div>
+      </div>
+    `;
+
+    const recent = [...pedidos].reverse().slice(0, 5);
+    if (!recent.length) {
+      document.getElementById('recentOrders').innerHTML = `
+        <div style="text-align: center; padding: 3rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+          <p style="color: var(--tm);">No hay pedidos aún</p>
+          <button onclick="seedDemoOrders()" class="btn btn-secondary" style="margin-top: 1rem;">
+            <i class="ti ti-plus"></i> Generar pedidos demo
+          </button>
+        </div>
+      `;
+      return;
+    }
+
+    document.getElementById('recentOrders').innerHTML = recent.map(p => `
+      <div class="order-item">
+        <div class="order-info">
+          <div class="order-num"><i class="ti ti-receipt"></i> ${p.numero}</div>
+          <div class="order-table"><i class="ti ti-armchair"></i> Mesa #${p.mesa}</div>
+          <div class="order-time"><i class="ti ti-clock"></i> ${formatFecha(p.fecha)}</div>
+        </div>
+        <span class="badge-status badge-${p.estado.replace('_', '')}">
+          ${estadoLabel(p.estado)}
+        </span>
+        <div style="font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ============================================================
+  // PEDIDOS
+  // ============================================================
+  function renderPedidos() {
+    const filter = document.getElementById('filterEstado')?.value || 'all';
+    let pedidos = [...getPedidos()].reverse();
+    if (filter !== 'all') pedidos = pedidos.filter(p => p.estado === filter);
+    
+    if (!pedidos.length) {
+      document.getElementById('pedidosList').innerHTML = `
+        <div style="text-align: center; padding: 3rem;">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+          <p style="color: var(--tm);">No hay pedidos con este estado</p>
+        </div>
+      `;
+      return;
+    }
+    
+    document.getElementById('pedidosList').innerHTML = pedidos.map(p => `
+      <div class="order-item" id="order-${p.id}">
+        <div class="order-info">
+          <div class="order-num"><i class="ti ti-receipt"></i> ${p.numero}</div>
+          <div class="order-table"><i class="ti ti-armchair"></i> Mesa #${p.mesa} · ${(p.items || []).length} item(s)</div>
+          <div class="order-time"><i class="ti ti-clock"></i> ${formatFecha(p.fecha)}</div>
+        </div>
+        <span class="badge-status badge-${p.estado.replace('_', '')}">
+          ${estadoLabel(p.estado)}
+        </span>
+        <div style="font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</div>
+        <div class="table-actions">
+          ${p.estado !== 'entregado' && p.estado !== 'cancelado' ? 
+            `<button onclick="cambiarEstado(${p.id})" class="btn btn-success" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
+              <i class="ti ti-arrow-right"></i> Avanzar
+            </button>` : ''}
+          <button onclick="verDetalle(${p.id})" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
+            <i class="ti ti-eye"></i> Ver
+          </button>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function estadoLabel(e) {
+    const map = { 
+      pendiente: '⏳ Pendiente', 
+      en_preparacion: '🔥 En Preparación', 
+      listo: '✅ Listo', 
+      entregado: '✓ Entregado', 
+      cancelado: '✕ Cancelado' 
+    };
+    return map[e] || e;
+  }
+
+  function cambiarEstado(id) {
+    const flow = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+    const p = getPedidos().find(p => p.id === id);
+    if (!p) return;
+    const idx = flow.indexOf(p.estado);
+    if (idx < flow.length - 1) {
+      actualizarEstadoPedido(id, flow[idx + 1]);
+      renderPedidos();
+      showToast(`Pedido ${p.numero} → ${estadoLabel(flow[idx + 1])}`, 'success');
+    }
+  }
+
+  function verDetalle(id) {
+    const p = getPedidos().find(p => p.id === id);
+    if (!p) return;
+    
+    const items = (p.items || []).map(i => `
+      <tr>
+        <td style="padding: 0.5rem;">${i.emoji || '🍽'} ${i.nombre}</td>
+        <td style="text-align: center; padding: 0.5rem;">${i.qty}</td>
+        <td style="text-align: right; padding: 0.5rem;">${formatCOP(i.precio * i.qty)}</td>
+      </tr>
+    `).join('');
+    
+    const modalContent = `
+      <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;">
+        <div style="background: white; border-radius: 28px; max-width: 500px; width: 100%; padding: 2rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3 style="font-family: 'Playfair Display', serif;">Detalle del Pedido</h3>
+            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
+          </div>
+          <div style="margin-bottom: 1rem;">
+            <p><strong>Pedido:</strong> ${p.numero}</p>
+            <p><strong>Mesa:</strong> #${p.mesa}</p>
+            <p><strong>Fecha:</strong> ${formatFecha(p.fecha)}</p>
+            ${p.notas ? `<p><strong>Notas:</strong> ${p.notas}</p>` : ''}
+          </div>
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
+            <thead><tr style="border-bottom: 1px solid var(--bd);"><th style="text-align: left; padding: 0.5rem;">Producto</th><th style="text-align: center;">Cant.</th><th style="text-align: right;">Subtotal</th></tr></thead>
+            <tbody>${items}</tbody>
+            <tfoot><tr style="border-top: 1px solid var(--bd);"><td colspan="2" style="padding: 0.8rem 0.5rem; font-weight: 700;">Total</td><td style="text-align: right; padding: 0.8rem 0.5rem; font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</td></tr></tfoot>
+          </table>
+          <button onclick="this.closest('div[style*=fixed]').remove()" class="btn btn-primary" style="width: 100%; justify-content: center;">Cerrar</button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalContent);
+  }
+
+  // ============================================================
+  // GESTIÓN DE MENÚ (CRUD)
+  // ============================================================
+  function renderProductsTable() {
+    const q = (document.getElementById('menuSearch')?.value || '').toLowerCase();
+    let prods = getProductos();
+    if (q) prods = prods.filter(p => p.nombre.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
+    
+    document.getElementById('menuTableBody').innerHTML = prods.map(p => `
+      <tr>
+        <td style="color: var(--tm); font-size: 0.75rem;">#${p.id}</td>
+        <td><span style="font-size: 1.3rem; margin-right: 0.5rem;">${p.emoji || '🍽'}</span><strong>${p.nombre}</strong></td>
+        <td><span class="badge-status" style="background: rgba(0,102,51,0.1); color: var(--g);">${p.cat}</span></td>
+        <td style="font-weight: 700; color: var(--g);">${formatCOP(p.precio)}</td>
+        <td><span class="badge-status ${p.disponible ? 'badge-listo' : 'badge-pendiente'}">${p.disponible ? '✓ Disponible' : '✕ Inactivo'}</span></td>
+        <td>
+          <div class="table-actions">
+            <button onclick="toggleDisponible(${p.id})" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">${p.disponible ? 'Pausar' : 'Activar'}</button>
+            <button onclick="openProductModal(${p.id})" class="btn btn-success" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Editar</button>
+            <button onclick="confirmDelete(${p.id})" class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Eliminar</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  function toggleDisponible(id) {
+    const prods = getProductos();
+    const p = prods.find(p => p.id === id);
+    if (p) {
+      editarProducto(id, { disponible: !p.disponible });
+      renderProductsTable();
+      showToast(`${p.nombre} ${!p.disponible ? 'activado' : 'pausado'}`, 'info');
+    }
+  }
+
+  function openProductModal(id) {
+    const modal = document.getElementById('productModal');
+    if (id) {
+      const p = getProductos().find(p => p.id === id);
+      if (!p) return;
+      document.getElementById('modalProdTitle').textContent = 'Editar Producto';
+      document.getElementById('modalProdSub').textContent = `Editando: ${p.nombre}`;
+      document.getElementById('prodAction').value = 'editar';
+      document.getElementById('prodId').value = id;
+      document.getElementById('prodNombre').value = p.nombre;
+      document.getElementById('prodEmoji').value = p.emoji || '';
+      document.getElementById('prodCat').value = p.cat;
+      document.getElementById('prodPrecio').value = p.precio;
+      document.getElementById('prodDesc').value = p.desc || '';
+    } else {
+      document.getElementById('modalProdTitle').textContent = 'Nuevo Producto';
+      document.getElementById('modalProdSub').textContent = 'Completa los datos del producto';
+      document.getElementById('prodAction').value = 'crear';
+      document.getElementById('prodId').value = '';
+      document.getElementById('productForm').reset();
+    }
+    modal.style.display = 'flex';
+  }
+
+  function closeProductModal(e) {
+    if (!e || e.target === document.getElementById('productModal') || e.target.classList?.contains('modal-close')) {
+      document.getElementById('productModal').style.display = 'none';
+    }
+  }
+
+  function saveProduct(e) {
+    e.preventDefault();
+    const action = document.getElementById('prodAction').value;
+    const id = document.getElementById('prodId').value;
+    const data = {
+      nombre: document.getElementById('prodNombre').value,
+      emoji: document.getElementById('prodEmoji').value || '🍽',
+      cat: document.getElementById('prodCat').value,
+      precio: parseInt(document.getElementById('prodPrecio').value),
+      desc: document.getElementById('prodDesc').value,
+      disponible: true
+    };
+    
+    if (action === 'crear') {
+      agregarProducto(data);
+      showToast(`✓ ${data.nombre} creado correctamente`, 'success');
+    } else {
+      editarProducto(parseInt(id), data);
+      showToast(`✓ ${data.nombre} actualizado correctamente`, 'success');
+    }
+    closeProductModal();
+    renderProductsTable();
+    return false;
+  }
+
+  function confirmDelete(id) {
+    const modal = document.getElementById('deleteModal');
+    modal.style.display = 'flex';
+    document.getElementById('confirmDeleteBtn').onclick = () => {
+      const producto = getProductos().find(p => p.id === id);
+      eliminarProducto(id);
+      modal.style.display = 'none';
+      renderProductsTable();
+      showToast(`${producto?.nombre || 'Producto'} eliminado`, 'info');
+    };
+  }
+
+  function closeDeleteModal(e) {
+    if (!e || e.target === document.getElementById('deleteModal')) {
+      document.getElementById('deleteModal').style.display = 'none';
+    }
+  }
+
+  // ============================================================
+  // REPORTES
+  // ============================================================
+  function renderReportes() {
+    const pedidos = getPedidos();
+    const productos = getProductos();
+
+    // Ventas por categoría
+    const catTotals = {};
+    pedidos.forEach(p => {
+      (p.items || []).forEach(i => {
+        const prod = productos.find(m => m.id === i.id);
+        const cat = prod?.cat || 'Otros';
+        catTotals[cat] = (catTotals[cat] || 0) + (i.precio * i.qty);
+      });
+    });
+    
+    const maxCat = Math.max(1, ...Object.values(catTotals));
+    document.getElementById('catReport').innerHTML = !Object.keys(catTotals).length ?
+      '<p style="text-align: center; padding: 2rem; color: var(--tm);">Sin datos aún</p>' :
+      Object.entries(catTotals).map(([cat, total]) => `
+        <div style="margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
+            <span>${cat}</span>
+            <strong style="color: var(--g);">${formatCOP(total)}</strong>
+          </div>
+          <div style="background: var(--bd); border-radius: 99px; height: 6px; overflow: hidden;">
+            <div style="height: 100%; background: linear-gradient(90deg, var(--g), var(--y)); width: ${(total / maxCat * 100).toFixed(1)}%; transition: width 0.6s;"></div>
+          </div>
+        </div>
+      `).join('');
+
+    // Estados de pedidos
+    const estCounts = {};
+    pedidos.forEach(p => { estCounts[p.estado] = (estCounts[p.estado] || 0) + 1; });
+    const estColors = { pendiente: '#ffc107', en_preparacion: '#0d6efd', listo: '#198754', entregado: '#6c757d' };
+    
+    document.getElementById('estadoReport').innerHTML = !Object.keys(estCounts).length ?
+      '<p style="text-align: center; padding: 2rem; color: var(--tm);">Sin datos aún</p>' :
+      Object.entries(estCounts).map(([est, cnt]) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid var(--bd);">
+          <div style="display: flex; align-items: center; gap: 0.8rem;">
+            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${estColors[est] || '#999'};"></span>
+            <span>${estadoLabel(est)}</span>
+          </div>
+          <strong style="font-size: 1.1rem;">${cnt}</strong>
+        </div>
+      `).join('');
+
+    // Resumen general
+    const totalVentas = pedidos.reduce((s, p) => s + (p.total || 0), 0);
+    const avgTicket = pedidos.length ? totalVentas / pedidos.length : 0;
+    
+    document.getElementById('generalReport').innerHTML = `
+      <div style="display: flex; flex-direction: column; gap: 0.8rem;">
+        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Total pedidos</div>
+          <div style="font-size: 2rem; font-weight: 800; font-family: 'Playfair Display', serif;">${pedidos.length}</div>
+        </div>
+        <div style="background: linear-gradient(135deg, var(--gl), transparent); border-radius: 16px; padding: 1rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Ingresos totales</div>
+          <div style="font-size: 1.5rem; font-weight: 800; color: var(--g);">${formatCOP(totalVentas)}</div>
+        </div>
+        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Ticket promedio</div>
+          <div style="font-size: 1.3rem; font-weight: 700;">${formatCOP(avgTicket)}</div>
+        </div>
+        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
+          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Productos activos</div>
+          <div style="font-size: 1.3rem; font-weight: 700;">${productos.filter(p => p.disponible).length}</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============================================================
+  // GENERAR PEDIDOS DEMO
+  // ============================================================
+  function seedDemoOrders() {
+    const mesas = [3, 5, 7, 12, 18];
+    const estados = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+    const productos = getProductos();
+    
+    mesas.forEach(m => {
+      const itemsAleatorios = [...productos].sort(() => 0.5 - Math.random()).slice(0, 3);
+      const items = itemsAleatorios.map(i => ({ ...i, qty: Math.ceil(Math.random() * 2) }));
+      const pedido = crearPedido(m, items, '');
+      actualizarEstadoPedido(pedido.id, estados[Math.floor(Math.random() * estados.length)]);
+    });
+    
+    renderDashboard();
+    showToast('✓ Pedidos demo generados correctamente', 'success');
+  }
+
+  // ============================================================
+  // INICIALIZACIÓN
+  // ============================================================
+  renderDashboard();
+
+  // Cerrar modales con ESC
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      document.getElementById('productModal').style.display = 'none';
+      document.getElementById('deleteModal').style.display = 'none';
+    }
+  });
+</script>
+
+</body>
+</html>

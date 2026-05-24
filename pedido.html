@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Mi Pedido | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --g: #006633;
+      --gd: #004d26;
+      --gm: #008040;
+      --gl: #eef7f2;
+      --g2: #d0e9dc;
+      --y: #FFD100;
+      --yd: #b89600;
+      --wh: #ffffff;
+      --bg: #f5f7f5;
+      --tx: #0e1c12;
+      --tm: #3a5544;
+      --bd: #c0d9c8;
+      --shadow-sm: 0 8px 20px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.02);
+      --shadow-md: 0 20px 35px -12px rgba(0, 60, 20, 0.15);
+      --shadow-lg: 0 25px 45px -12px rgba(0, 0, 0, 0.2);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: linear-gradient(135deg, var(--bg) 0%, #e8efe5 100%);
+      color: var(--tx);
+      min-height: 100vh;
+    }
+
+    /* fondo decorativo */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="10" cy="10" r="2" fill="%23006633" opacity="0.05"/><circle cx="85" cy="30" r="3" fill="%23006633" opacity="0.04"/><circle cx="45" cy="85" r="2.5" fill="%23FFD100" opacity="0.06"/></svg>');
+      background-repeat: repeat;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ========== NAVBAR (glam) ========== */
+    .navbar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(192, 217, 200, 0.5);
+      box-shadow: 0 2px 15px rgba(0, 0, 0, 0.02);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      transition: transform 0.2s ease;
+    }
+    .logo:hover {
+      transform: scale(1.02);
+    }
+    .logo-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 6px 14px rgba(0, 102, 51, 0.25);
+    }
+    .logo-text {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--tx);
+      letter-spacing: -0.3px;
+    }
+    .logo-text strong {
+      color: var(--g);
+      font-weight: 800;
+    }
+
+    /* ========== MAIN CONTENT ========== */
+    .main-container {
+      max-width: 950px;
+      margin: 2rem auto;
+      padding: 0 1.5rem 2rem;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ========== TARJETA DE ESTADO ========== */
+    .status-header {
+      background: var(--wh);
+      border-radius: 28px;
+      padding: 1.8rem 2rem;
+      margin-bottom: 2rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--bd);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      transition: all 0.3s ease;
+    }
+    .order-info h4 {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--g);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .order-number {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--tx);
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .order-meta {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--tm);
+      font-size: 0.85rem;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem 1.5rem;
+      border-radius: 60px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      background: var(--wh);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--bd);
+    }
+    .status-pill[data-status="pendiente"] { background: #fff9e6; color: #c98b00; border-color: #ffe5b4; }
+    .status-pill[data-status="en_preparacion"] { background: #e8f0fe; color: #1e6f9f; border-color: #cde0f5; }
+    .status-pill[data-status="listo"] { background: #e6f7ec; color: #2e7d32; border-color: #c8e6d9; }
+    .status-pill[data-status="entregado"] { background: #f0f2f0; color: #5e6b5e; border-color: #d4dcd4; }
+
+    /* ========== TIMELINE MEJORADO ========== */
+    .timeline-modern {
+      background: var(--wh);
+      border-radius: 28px;
+      padding: 2rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--bd);
+      margin-bottom: 2rem;
+    }
+    .step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+    }
+    .step:last-child {
+      margin-bottom: 0;
+    }
+    .step-icon {
+      flex-shrink: 0;
+      width: 54px;
+      height: 54px;
+      background: #f8faf8;
+      border-radius: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      border: 1.5px solid var(--bd);
+      transition: all 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+      position: relative;
+      z-index: 2;
+    }
+    /* línea conectora vertical */
+    .step:not(:last-child) .step-icon::after {
+      content: '';
+      position: absolute;
+      bottom: -38px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 2px;
+      height: 38px;
+      background: linear-gradient(to bottom, var(--bd) 0%, var(--bd) 100%);
+      transition: all 0.3s;
+    }
+    .step.completed .step-icon {
+      background: var(--g);
+      border-color: var(--g);
+      color: var(--y);
+      box-shadow: 0 6px 14px rgba(0, 102, 51, 0.2);
+    }
+    .step.completed .step-icon::after {
+      background: linear-gradient(to bottom, var(--g) 0%, var(--g) 100%);
+    }
+    .step.active .step-icon {
+      border-color: var(--g);
+      background: var(--wh);
+      box-shadow: 0 0 0 4px rgba(0, 102, 51, 0.12);
+      transform: scale(1.05);
+    }
+    .step-content {
+      flex: 1;
+      padding-top: 0.3rem;
+    }
+    .step-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 0.2rem;
+      color: var(--tx);
+    }
+    .step-desc {
+      font-size: 0.8rem;
+      color: var(--tm);
+      line-height: 1.4;
+    }
+    .step.completed .step-title {
+      color: var(--g);
+    }
+    .step.active .step-title {
+      color: var(--gd);
+    }
+
+    /* ========== DETALLES DEL PEDIDO ========== */
+    .order-details {
+      background: var(--wh);
+      border-radius: 28px;
+      padding: 1.8rem;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--bd);
+      margin-bottom: 2rem;
+    }
+    .section-title {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--tx);
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--g2);
+    }
+    .items-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .items-table th {
+      text-align: left;
+      padding: 0.6rem 0.2rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--tm);
+      font-weight: 600;
+      border-bottom: 1px solid var(--bd);
+    }
+    .items-table td {
+      padding: 0.8rem 0.2rem;
+      border-bottom: 1px solid var(--g2);
+      font-size: 0.9rem;
+    }
+    .items-table tr:last-child td {
+      border-bottom: none;
+    }
+    .totals {
+      margin-top: 1.2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--bd);
+    }
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.4rem 0;
+      font-size: 0.85rem;
+    }
+    .total-grand {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.8rem 0 0.3rem;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: var(--g);
+      border-top: 2px solid var(--g2);
+      margin-top: 0.3rem;
+    }
+
+    /* ========== BOTONES ========== */
+    .action-buttons {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.8rem 1.5rem;
+      border-radius: 40px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--g), var(--gd));
+      color: white;
+      box-shadow: 0 4px 12px rgba(0, 102, 51, 0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 102, 51, 0.3);
+    }
+    .btn-secondary {
+      background: var(--wh);
+      color: var(--tx);
+      border: 1px solid var(--bd);
+    }
+    .btn-secondary:hover {
+      border-color: var(--g);
+      background: var(--gl);
+      transform: translateY(-1px);
+    }
+    .btn-ghost {
+      background: transparent;
+      color: var(--g);
+      border: 1px solid var(--bd);
+    }
+    .btn-ghost:hover {
+      border-color: var(--g);
+      background: rgba(0, 102, 51, 0.05);
+    }
+
+    /* ========== ESTADO VACÍO ========== */
+    .empty-state {
+      background: var(--wh);
+      border-radius: 32px;
+      padding: 3rem 2rem;
+      text-align: center;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--bd);
+    }
+    .empty-icon {
+      font-size: 70px;
+      margin-bottom: 1rem;
+    }
+
+    /* ========== RESPONSIVE ========== */
+    @media (max-width: 650px) {
+      .main-container {
+        padding: 0 1rem 1.5rem;
+      }
+      .status-header {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 1.5rem;
+      }
+      .timeline-modern {
+        padding: 1.2rem;
+      }
+      .step-icon {
+        width: 44px;
+        height: 44px;
+        font-size: 20px;
+      }
+      .order-details {
+        padding: 1.2rem;
+      }
+      .btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.8rem;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="nav-inner">
+    <a href="index.html" class="logo">
+      <div class="logo-icon">🍽️</div>
+      <span class="logo-text">Restaurante <strong>SENA</strong></span>
+    </a>
+    <a href="menu.html" class="btn btn-ghost" style="padding: 0.6rem 1.2rem;">
+      <i class="ti ti-plus"></i> Agregar más
+    </a>
+  </div>
+</nav>
+
+<main class="main-container">
+  <!-- Estado: sin pedido -->
+  <div id="noOrder" style="display: none;">
+    <div class="empty-state">
+      <div class="empty-icon">🤔</div>
+      <h2 style="margin-bottom: 0.5rem;">No hay pedido activo</h2>
+      <p style="color: var(--tm); margin-bottom: 1.5rem;">No encontramos un pedido en curso para tu mesa</p>
+      <a href="menu.html" class="btn btn-primary">
+        <i class="ti ti-book"></i> Ver Menú
+      </a>
+    </div>
+  </div>
+
+  <div id="orderView">
+    <!-- Tarjeta superior con número y estado -->
+    <div class="status-header">
+      <div class="order-info">
+        <h4><i class="ti ti-receipt"></i> Número de orden</h4>
+        <div class="order-number" id="orderNum">—</div>
+        <div class="order-meta">
+          <i class="ti ti-armchair"></i>
+          <span id="orderMeta">Mesa # —</span>
+        </div>
+      </div>
+      <div class="status-pill" id="statusPill">
+        <i class="ti ti-info-circle"></i>
+        <span id="statusText">—</span>
+      </div>
+    </div>
+
+    <!-- Timeline moderno -->
+    <div class="timeline-modern">
+      <div class="step" id="step-pendiente">
+        <div class="step-icon">📋</div>
+        <div class="step-content">
+          <div class="step-title">Pedido Recibido</div>
+          <div class="step-desc">Tu orden ha sido registrada correctamente</div>
+        </div>
+      </div>
+      <div class="step" id="step-preparacion">
+        <div class="step-icon">🔥</div>
+        <div class="step-content">
+          <div class="step-title">En Preparación</div>
+          <div class="step-desc">Nuestro equipo está cocinando tus platos</div>
+        </div>
+      </div>
+      <div class="step" id="step-listo">
+        <div class="step-icon">✅</div>
+        <div class="step-content">
+          <div class="step-title">Listo para Servir</div>
+          <div class="step-desc">Tu pedido está listo, el mesero lo llevará</div>
+        </div>
+      </div>
+      <div class="step" id="step-entregado">
+        <div class="step-icon">🛎️</div>
+        <div class="step-content">
+          <div class="step-title">Entregado</div>
+          <div class="step-desc">¡Buen provecho! Disfruta tu comida</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detalle del pedido -->
+    <div class="order-details">
+      <div class="section-title">
+        <i class="ti ti-shopping-cart"></i> Detalle del pedido
+      </div>
+      <table class="items-table">
+        <thead>
+          <tr><th>Producto</th><th style="width: 70px; text-align: center;">Cant.</th><th style="width: 110px; text-align: right;">Subtotal</th></tr>
+        </thead>
+        <tbody id="orderDetailBody"></tbody>
+      </table>
+      <div class="totals">
+        <div class="total-row"><span>Subtotal</span><span id="trackSubtotal">—</span></div>
+        <div class="total-row"><span>Servicio (10%)</span><span id="trackServicio">—</span></div>
+        <div class="total-row"><span>IVA (19%)</span><span id="trackIva">—</span></div>
+        <div class="total-grand"><span>Total</span><span id="trackTotal">—</span></div>
+      </div>
+    </div>
+
+    <!-- Botones de acción -->
+    <div class="action-buttons">
+      <button onclick="llamarMesero()" class="btn btn-secondary">
+        <i class="ti ti-bell-ringing"></i> Llamar Mesero
+      </button>
+      <a href="factura.html" class="btn btn-secondary">
+        <i class="ti ti-receipt"></i> Ver Factura
+      </a>
+      <a href="menu.html" class="btn btn-primary">
+        <i class="ti ti-plus"></i> Agregar más
+      </a>
+    </div>
+  </div>
+</main>
+
+<script src="js/main.js"></script>
+<script src="js/api.js"></script>
+<script>
+  // ============================================================
+  // LÓGICA DEL PEDIDO (NO TOCADA, SOLO MEJORÉ LA VISUALIZACIÓN)
+  // ============================================================
+
+  const raw = JSP.session.get('lastOrder');
+  const pedido = raw ? JSON.parse(raw) : null;
+
+  if (!pedido) {
+    document.getElementById('noOrder').style.display = 'block';
+    document.getElementById('orderView').style.display = 'none';
+  } else {
+    // Mostrar datos básicos
+    document.getElementById('orderNum').textContent = pedido.numero || `#${pedido.id || '0001'}`;
+    document.getElementById('orderMeta').textContent = `Mesa #${pedido.mesa || '?'} · ${formatFecha(pedido.fecha)}`;
+
+    // Función para obtener estado actual (misma que tenías)
+    function getEstado() {
+      const pedidos = getPedidos();
+      const p = pedidos.find(p => p.id === pedido.id);
+      return p ? p.estado : (pedido.estado || 'pendiente');
+    }
+
+    // Actualizar UI según el estado (versión mejorada visualmente)
+    function actualizarUI(estado) {
+      // Mapeo de estados a texto e ícono
+      const estadoInfo = {
+        'pendiente': { texto: '⏳ Pendiente', icono: 'ti-timer' },
+        'en_preparacion': { texto: '🔥 En Preparación', icono: 'ti-chef-hat' },
+        'listo': { texto: '✅ Listo para servir', icono: 'ti-circle-check' },
+        'entregado': { texto: '✓ Entregado', icono: 'ti-hand-click' }
+      };
+      
+      // Actualizar pill de estado
+      const info = estadoInfo[estado] || estadoInfo['pendiente'];
+      const pill = document.getElementById('statusPill');
+      const statusSpan = document.getElementById('statusText');
+      pill.setAttribute('data-status', estado);
+      statusSpan.innerHTML = `<i class="${info.icono}" style="font-size:14px;"></i> ${info.texto}`;
+      
+      // Actualizar pasos del timeline
+      const steps = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+      const currentIdx = steps.indexOf(estado);
+      
+      steps.forEach((step, idx) => {
+        let stepId = '';
+        if (step === 'pendiente') stepId = 'step-pendiente';
+        if (step === 'en_preparacion') stepId = 'step-preparacion';
+        if (step === 'listo') stepId = 'step-listo';
+        if (step === 'entregado') stepId = 'step-entregado';
+        
+        const stepEl = document.getElementById(stepId);
+        if (!stepEl) return;
+        
+        stepEl.classList.remove('completed', 'active');
+        if (idx < currentIdx) stepEl.classList.add('completed');
+        else if (idx === currentIdx) stepEl.classList.add('active');
+      });
+    }
+
+    // Renderizar tabla de productos
+    function renderDetail() {
+      const items = pedido.items || [];
+      const tbody = document.getElementById('orderDetailBody');
+      if (tbody) {
+        tbody.innerHTML = items.map(item => `
+          <tr>
+            <td>${item.emoji || '🍽️'} ${item.nombre}</td>
+            <td style="text-align: center;">${item.qty}</td>
+            <td style="text-align: right;">${formatCOP(item.precio * item.qty)}</td>
+          </tr>
+        `).join('');
+      }
+      document.getElementById('trackSubtotal').textContent = formatCOP(pedido.subtotal || 0);
+      document.getElementById('trackServicio').textContent = formatCOP(pedido.servicio || 0);
+      document.getElementById('trackIva').textContent = formatCOP(pedido.iva || 0);
+      document.getElementById('trackTotal').textContent = formatCOP(pedido.total || 0);
+    }
+
+    actualizarUI(getEstado());
+    renderDetail();
+
+    // Polling cada 3 segundos (igual que antes)
+    setInterval(() => {
+      actualizarUI(getEstado());
+    }, 3000);
+  }
+
+  // Función para llamar al mesero
+  function llamarMesero() {
+    if (typeof showToast === 'function') {
+      showToast('🛎️ ¡Mesero notificado! Llegará a tu mesa en breve.', 'success');
+    } else {
+      alert('🛎️ Mesero notificado');
+    }
+  }
+
+  // Helpers (por si no existen)
+  if (typeof formatFecha !== 'function') {
+    window.formatFecha = function(dateStr) {
+      if (!dateStr) return 'hoy';
+      try {
+        const d = new Date(dateStr);
+        return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) + ' · ' + d.toLocaleDateString('es-CO');
+      } catch (e) {
+        return 'fecha reciente';
+      }
+    };
+  }
+  if (typeof formatCOP !== 'function') {
+    window.formatCOP = function(value) {
+      return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value || 0);
+    };
+  }
+  if (typeof getPedidos !== 'function') {
+    window.getPedidos = function() { return []; };
+  }
+  if (typeof JSP === 'undefined') {
+    window.JSP = { session: { get: (key) => localStorage.getItem(key) } };
+  }
+</script>
+</body>
+</html>
