@@ -167,6 +167,9 @@ def config_publica():
         "impuesto_pct": config.IMPUESTO_PCT,
         "propina_pct": config.PROPINA_SUGERIDA_PCT,
         "server_url": config.SERVER_URL,
+        # Hora del servidor: las pantallas del personal calculan los minutos
+        # de espera con ella, sin depender del reloj de cada dispositivo.
+        "ahora": datetime.now().isoformat(timespec="seconds"),
     })
 
 

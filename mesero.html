@@ -4,36 +4,151 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meseros | Restaurante SENA</title>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
-  <link rel="stylesheet" href="css/styles.css">
-  <style>
-    body { font-family: 'DM Sans', sans-serif; background: #f5f7f5; color: #0e1c12; margin: 0; }
-    .barra { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;
-             background: #fff; border-bottom: 1px solid #c0d9c8; }
-    .barra h1 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 0; color: #006633; }
-    .barra button { background: none; border: 1px solid #c0d9c8; border-radius: 9px; padding: .5rem 1rem;
-                    cursor: pointer; font: inherit; }
-    .provisional { max-width: 560px; margin: 4rem auto; text-align: center; padding: 0 1rem; }
-    .provisional i { font-size: 3rem; color: #006633; }
-  </style>
+  <link rel="stylesheet" href="css/personal.css">
 </head>
 <body>
   <header class="barra">
-    <h1><i class="ti ti-bell-ringing"></i> Meseros</h1>
-    <div><span id="usuarioNombre"></span> <button onclick="apiLogout()"><i class="ti ti-logout"></i> Salir</button></div>
+    <h1><i class="ti ti-bell-ringing" aria-hidden="true"></i> Meseros</h1>
+    <div class="barra-derecha">
+      <span class="usuario" id="usuarioNombre"></span>
+      <button id="btnSonido" class="boton claro sonido-apagado" type="button"></button>
+      <button class="boton claro" type="button" onclick="apiLogout()">
+        <i class="ti ti-logout" aria-hidden="true"></i> <span class="ocultable">Salir</span>
+      </button>
+    </div>
   </header>
-  <main class="provisional">
-    <i class="ti ti-bell-ringing" aria-hidden="true"></i>
-    <h2>Vista en construcción</h2>
-    <p>Aquí verás los pedidos listos para entregar y los llamados de las mesas.</p>
+
+  <div class="estado-conexion" id="estadoConexion" role="status" aria-live="polite">Cargando…</div>
+
+  <main class="tablero">
+    <section class="columna" aria-labelledby="tituloListos">
+      <h2 id="tituloListos">
+        <span><i class="ti ti-circle-check" aria-hidden="true"></i> Pedidos listos para llevar</span>
+        <span class="contador" id="numListos">0</span>
+      </h2>
+      <div class="lista" id="listaListos"></div>
+    </section>
+
+    <section class="columna">
+      <h2 id="tituloLlamados">
+        <span><i class="ti ti-hand-stop" aria-hidden="true"></i> Mesas que llaman</span>
+        <span class="contador" id="numLlamados">0</span>
+      </h2>
+      <div class="lista" id="listaLlamados" aria-labelledby="tituloLlamados"></div>
+
+      <h2 style="margin-top:1.6rem">
+        <span><i class="ti ti-flame" aria-hidden="true"></i> En cocina</span>
+      </h2>
+      <div class="resumen-cocina" id="resumenCocina"></div>
+    </section>
   </main>
+
   <script src="js/main.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/personal.js"></script>
   <script>
-    requerirSesion(['Mesero', 'Administrador']).then(u => {
-      document.getElementById('usuarioNombre').textContent = u.nombre;
+    const nuevosListos = new DetectorNuevos();
+    const nuevosLlamados = new DetectorNuevos();
+    let pedidos = [];
+    let llamados = [];
+    let sondeo;
+
+    function tarjetaListo(p) {
+      const min = minutosDesde(p.fecha_listo || p.fecha_pedido);
+      const clase = min >= 10 ? ' urgente' : min >= 5 ? ' demora' : '';
+      return `<article class="tarjeta${clase}" data-id="${p.id_pedido}">
+        <div class="tarjeta-cabeza">
+          <div class="mesa-grande">Mesa ${p.numero_mesa}<small>${esc(p.numero_pedido)}</small></div>
+          <span class="espera"><i class="ti ti-hourglass" aria-hidden="true"></i> listo ${textoEspera(min)}</span>
+        </div>
+        <ul class="items">${(p.items || []).map(i => `
+          <li><span class="cant">${i.cantidad}×</span><span>${esc(i.emoji || '')} ${esc(i.nombre)}</span></li>`).join('')}
+        </ul>
+        ${p.notas ? `<div class="notas"><strong>Nota:</strong> ${esc(p.notas)}</div>` : ''}
+        <div class="acciones">
+          <button class="boton entregar" data-accion="entregar"><i class="ti ti-check"></i> Entregado</button>
+        </div>
+      </article>`;
+    }
+
+    function tarjetaLlamado(l) {
+      const min = minutosDesde(l.fecha_solicitud);
+      return `<article class="tarjeta llamado${min >= 3 ? ' urgente' : ''}" data-llamado="${l.id_llamado}">
+        <div>
+          <div class="mesa-grande">Mesa ${l.numero_mesa}</div>
+          <span class="espera"><i class="ti ti-bell" aria-hidden="true"></i> llamó ${textoEspera(min)}</span>
+        </div>
+        <button class="boton primario" data-accion="atender"><i class="ti ti-check"></i> Atendido</button>
+      </article>`;
+    }
+
+    function pintar() {
+      const listos = pedidos.filter(p => p.estado === 'listo');
+      const enCocina = pedidos.filter(p => p.estado !== 'listo');
+      document.getElementById('numListos').textContent = listos.length;
+      document.getElementById('listaListos').innerHTML = listos.length
+        ? listos.map(tarjetaListo).join('')
+        : '<div class="vacio"><i class="ti ti-tools-kitchen-2" aria-hidden="true"></i>No hay pedidos listos por ahora</div>';
+      document.getElementById('numLlamados').textContent = llamados.length;
+      document.getElementById('listaLlamados').innerHTML = llamados.length
+        ? llamados.map(tarjetaLlamado).join('')
+        : '<div class="vacio"><i class="ti ti-mood-happy" aria-hidden="true"></i>Ninguna mesa está llamando</div>';
+      document.getElementById('resumenCocina').innerHTML = enCocina.length
+        ? enCocina.map(p => `<span class="chip">Mesa ${p.numero_mesa} · ${p.estado === 'pendiente' ? 'pendiente' : 'en preparación'}</span>`).join('')
+        : '<span class="chip">Sin pedidos en cocina</span>';
+      const total = listos.length + llamados.length;
+      document.title = total ? `(${total}) Meseros | Restaurante SENA` : 'Meseros | Restaurante SENA';
+    }
+
+    async function cargar() {
+      const [rp, rl] = await Promise.all([
+        apiPersonal('/pedidos?estado=pendiente,en_preparacion,listo&items=1&orden=asc&limit=100'),
+        apiPersonal('/llamados')
+      ]);
+      if (!rp.ok || !rl.ok) return false;
+      pedidos = rp.data;
+      llamados = rl.data;
+      const listos = nuevosListos.revisar(pedidos.filter(p => p.estado === 'listo').map(p => p.id_pedido));
+      const nuevos = nuevosLlamados.revisar(llamados.map(l => l.id_llamado));
+      if (nuevos) {
+        Sonido.tocar('llamado');
+        showToast(nuevos === 1 ? `La mesa ${llamados[llamados.length - 1].numero_mesa} está llamando` : `${nuevos} mesas están llamando`, 'info');
+      }
+      if (listos) {
+        setTimeout(() => Sonido.tocar('listo'), nuevos ? 900 : 0);
+        showToast(listos === 1 ? 'Hay un pedido listo para llevar' : `Hay ${listos} pedidos listos para llevar`, 'info');
+      }
+      pintar();
+      return true;
+    }
+
+    document.querySelector('.tablero').addEventListener('click', async (e) => {
+      const boton = e.target.closest('button[data-accion]');
+      if (!boton) return;
+      const tarjeta = boton.closest('.tarjeta');
+      boton.disabled = true;
+      if (boton.dataset.accion === 'entregar') {
+        const id = Number(tarjeta.dataset.id);
+        const p = pedidos.find(x => x.id_pedido === id);
+        if (await cambiarEstadoPedido(id, 'entregado')) showToast(`Mesa ${p.numero_mesa}: pedido entregado`, 'success');
+      } else {
+        const id = Number(tarjeta.dataset.llamado);
+        const r = await apiPersonal(`/llamados/${id}/atender`, { method: 'PUT' });
+        if (!r.ok) showToast(r.data.msg || 'No se pudo marcar el llamado', 'error');
+      }
+      sondeo.ahora();
     });
+
+    (async () => {
+      await iniciarPantallaPersonal(['Mesero', 'Administrador']);
+      configurarBotonSonido('btnSonido');
+      document.getElementById('btnSonido').addEventListener('click', () =>
+        document.getElementById('btnSonido').classList.remove('sonido-apagado'));
+      sondeo = iniciarSondeo(cargar, 'estadoConexion');
+      setInterval(pintar, 30000);
+    })();
   </script>
 </body>
 </html>

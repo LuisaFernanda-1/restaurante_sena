@@ -1,0 +1,112 @@
+/* personal.css — Pantallas de cocina y meseros (Restaurante SENA) */
+:root {
+  --g: #006633; --gd: #004d26; --gm: #008040; --gl: #eef7f2; --g2: #d0e9dc;
+  --y: #FFD100; --yd: #b89600;
+  --wh: #ffffff; --bg: #f2f5f2; --tx: #0e1c12; --tm: #3a5544; --bd: #c0d9c8;
+  --amarillo: #fff4cc; --amarillo-borde: #e8c33a;
+  --rojo: #fdecea; --rojo-borde: #e05545; --rojo-texto: #b3261e;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); color: var(--tx); min-height: 100vh; }
+[hidden] { display: none !important; }
+
+/* ── Encabezado ── */
+.barra {
+  position: sticky; top: 0; z-index: 50;
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+  padding: .8rem 1.5rem; background: var(--g); color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 60, 20, .2);
+}
+.barra h1 { font-family: 'Playfair Display', serif; font-size: 1.35rem; display: flex; align-items: center; gap: .5rem; }
+.barra h1 i { color: var(--y); }
+.barra-derecha { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; }
+.barra .usuario { font-size: .85rem; opacity: .85; }
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: .45rem;
+  border: none; border-radius: 12px; padding: .7rem 1.1rem;
+  font: inherit; font-weight: 700; font-size: .95rem; cursor: pointer;
+  transition: transform .1s, filter .15s; min-height: 44px;
+}
+.boton:active { transform: scale(.97); }
+.boton:disabled { opacity: .55; cursor: wait; }
+.boton.primario { background: var(--g); color: #fff; }
+.boton.primario:hover { filter: brightness(1.1); }
+.boton.listo { background: #1f8a3c; color: #fff; }
+.boton.entregar { background: var(--y); color: var(--tx); }
+.boton.secundario { background: var(--wh); color: var(--tx); border: 1px solid var(--bd); }
+.boton.peligro { background: var(--wh); color: var(--rojo-texto); border: 1px solid var(--rojo-borde); }
+.boton.claro { background: rgba(255,255,255,.12); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+.boton.claro.activo { background: var(--y); color: var(--tx); border-color: var(--y); }
+.boton.sonido-apagado { animation: llamar-atencion 1.6s ease-in-out infinite; }
+@keyframes llamar-atencion { 50% { box-shadow: 0 0 0 6px rgba(255, 209, 0, .45); } }
+
+.estado-conexion { font-size: .78rem; color: var(--tm); padding: .5rem 1.5rem; }
+.estado-conexion.sin-conexion { color: var(--rojo-texto); font-weight: 700; background: var(--rojo); }
+
+/* ── Columnas ── */
+.tablero { display: grid; gap: 1.2rem; padding: 0 1.5rem 2rem; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.columna h2 {
+  display: flex; align-items: center; justify-content: space-between; gap: .5rem;
+  font-size: 1.05rem; margin-bottom: .8rem; padding-bottom: .5rem; border-bottom: 2px solid var(--bd);
+}
+.contador {
+  min-width: 32px; height: 32px; padding: 0 .5rem; border-radius: 16px; background: var(--g); color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; font-size: .95rem;
+}
+.lista { display: flex; flex-direction: column; gap: .9rem; }
+.vacio { text-align: center; color: var(--tm); padding: 2rem 1rem; background: var(--wh);
+         border: 2px dashed var(--bd); border-radius: 16px; font-size: .95rem; }
+.vacio i { font-size: 2rem; display: block; margin-bottom: .3rem; color: var(--bd); }
+
+/* ── Tarjeta de pedido ── */
+.tarjeta {
+  background: var(--wh); border: 2px solid var(--bd); border-radius: 18px; padding: 1rem 1.1rem;
+  box-shadow: 0 6px 18px rgba(0, 60, 20, .06); animation: entrar .35s ease;
+}
+@keyframes entrar { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+.tarjeta.demora { border-color: var(--amarillo-borde); background: var(--amarillo); }
+.tarjeta.urgente { border-color: var(--rojo-borde); background: var(--rojo); }
+.tarjeta-cabeza { display: flex; justify-content: space-between; align-items: flex-start; gap: .8rem; margin-bottom: .6rem; }
+.mesa-grande { font-family: 'Playfair Display', serif; font-size: 1.6rem; font-weight: 900; color: var(--gd); line-height: 1; }
+.mesa-grande small { display: block; font-family: 'DM Sans', sans-serif; font-size: .75rem; font-weight: 500; color: var(--tm); margin-top: .25rem; }
+.espera { font-size: .82rem; font-weight: 700; color: var(--tm); white-space: nowrap; display: flex; align-items: center; gap: .25rem; }
+.tarjeta.demora .espera { color: #8a6500; }
+.tarjeta.urgente .espera { color: var(--rojo-texto); }
+.items { list-style: none; margin: .4rem 0 .6rem; }
+.items li { display: flex; gap: .6rem; padding: .35rem 0; border-bottom: 1px dashed var(--g2); font-size: 1.05rem; }
+.items li:last-child { border-bottom: none; }
+.items .cant { font-weight: 900; min-width: 2.2rem; color: var(--g); }
+.notas { background: var(--amarillo); border-left: 4px solid var(--amarillo-borde); border-radius: 8px;
+         padding: .5rem .7rem; font-size: .92rem; margin-bottom: .7rem; }
+.tarjeta.demora .notas, .tarjeta.urgente .notas { background: rgba(255,255,255,.7); }
+.acciones { display: flex; gap: .6rem; flex-wrap: wrap; }
+.acciones .boton { flex: 1; }
+.acciones .boton.peligro { flex: 0 0 auto; }
+
+/* ── Mesero ── */
+.llamado { display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+           border-color: var(--y); background: #fffbe6; }
+.resumen-cocina { display: flex; gap: .6rem; flex-wrap: wrap; }
+.chip { background: var(--wh); border: 1px solid var(--bd); border-radius: 20px; padding: .35rem .8rem; font-size: .85rem; }
+
+/* ── Confirmación ── */
+.confirmacion-velo { position: fixed; inset: 0; z-index: 300; background: rgba(10, 28, 16, .55);
+                     display: flex; align-items: center; justify-content: center; padding: 1rem; }
+.confirmacion-caja { background: var(--wh); border-radius: 20px; padding: 1.5rem; max-width: 420px; width: 100%; }
+.confirmacion-caja p { font-size: 1.05rem; margin-bottom: 1.2rem; }
+.confirmacion-botones { display: flex; gap: .7rem; justify-content: flex-end; }
+
+/* ── Avisos (toasts de main.js) ── */
+#toast-container { position: fixed; bottom: 1rem; right: 1rem; z-index: 400; display: flex; flex-direction: column; gap: .5rem; }
+.toast { background: var(--tx); color: #fff; padding: .8rem 1rem; border-radius: 12px; display: flex; gap: .6rem;
+         box-shadow: 0 8px 22px rgba(0,0,0,.25); max-width: 360px; font-size: .92rem; }
+.toast.error { background: var(--rojo-texto); }
+.toast.success { background: var(--gd); }
+
+@media (max-width: 800px) {
+  .tablero { grid-template-columns: 1fr; padding: 0 .8rem 2rem; }
+  .barra { padding: .7rem 1rem; }
+  .barra .usuario, .boton.claro span.ocultable { display: none; }
+  .estado-conexion { padding: .5rem 1rem; }
+}
+@keyframes toastOut { to { opacity: 0; transform: translateY(10px); } }

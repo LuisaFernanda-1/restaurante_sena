@@ -78,3 +78,20 @@ def test_limite_de_llamados(cliente):
         if mesa != 16:
             assert llamar(cliente, mesa).status_code == 201
     assert llamar(cliente, 11).status_code == 429
+
+
+def test_config_incluye_hora_del_servidor(cliente):
+    from datetime import datetime
+    ahora = datetime.fromisoformat(cliente.get("/api/config").get_json()["ahora"])
+    assert abs((datetime.now() - ahora).total_seconds()) < 5
+
+
+def test_cocina_ve_pendientes_con_productos_del_mas_antiguo(como, crear_pedido):
+    p1 = crear_pedido(mesa=3, notas="Sin sal")
+    p2 = crear_pedido(mesa=4, items=[{"id": 6, "cantidad": 2}])
+    r = como("chef").get("/api/pedidos?estado=pendiente,en_preparacion&items=1&orden=asc&limit=100")
+    pedidos = r.get_json()
+    assert [p["id_pedido"] for p in pedidos] == [p1["id_pedido"], p2["id_pedido"]]
+    assert pedidos[0]["notas"] == "Sin sal"
+    assert pedidos[1]["items"][0]["nombre"] == "Sancocho Trifásico"
+    assert pedidos[1]["items"][0]["cantidad"] == 2
