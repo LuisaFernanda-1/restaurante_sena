@@ -19,3 +19,8 @@ logs/
 Thumbs.db
 .vscode/
 .idea/
+
+# Configuración del backend PHP con contraseñas: NUNCA subir
+api/config.local.php
+# Paquete para el hosting (se genera con scripts/generar_zip.php)
+restaurante_hostinger.zip

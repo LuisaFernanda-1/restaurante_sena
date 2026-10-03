@@ -1,0 +1,39 @@
+# ============================================================
+#  .htaccess — Restaurante SENA (Apache de XAMPP / LiteSpeed de Hostinger)
+#  Solo se publican las páginas, css/, js/, img/ y la API (api/index.php).
+# ============================================================
+
+Options -Indexes -MultiViews
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Carpetas que nunca deben verse desde el navegador
+    RewriteRule ^(sql|tests|scripts|backend|respaldos|logs|docs|node_modules|\.git)(/|$) - [R=404,L]
+</IfModule>
+
+# Archivos ocultos, de configuración, respaldos y documentación
+<FilesMatch "(^\.|\.(md|sql|gz|zip|log|ps1|bat|py|sh|ini|lock|bak|dist)$|^config\.local\.php$|^config\.example\.php$|\.postman_(collection|environment)\.json$)">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "same-origin"
+    # Las páginas se revisan siempre para que los cambios lleguen a los celulares
+    <FilesMatch "\.html$">
+        Header set Cache-Control "no-cache"
+    </FilesMatch>
+</IfModule>
+
+<IfModule mod_mime.c>
+    AddDefaultCharset utf-8
+    AddType application/javascript .js
+</IfModule>

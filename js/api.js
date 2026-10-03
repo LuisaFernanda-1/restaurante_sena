@@ -5,9 +5,10 @@
  * Todas las páginas hablan con el servidor por aquí (fetch a /api/...).
  */
 
-// Rutas relativas: el mismo servidor Flask entrega las páginas y la API,
-// así funciona igual en el computador y en el celular que escanea el QR.
-const API_BASE = "/api";
+// Ruta RELATIVA a la página: funciona igual en una subcarpeta
+// (http://localhost/restaurante/) y en la raíz de un subdominio
+// (https://restaurante.midominio.com/), en el computador y en el celular.
+const API_BASE = "api";
 
 // ============================================================
 // HELPER GENÉRICO
