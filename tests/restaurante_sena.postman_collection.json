@@ -1,0 +1,366 @@
+{
+  "info": {
+    "name": "Restaurante SENA — API",
+    "description": "Colección de la API PHP de Restaurante SENA. Recorre el flujo completo: carta, pedido del comensal, cocina, mesero, factura, administración, reportes y respaldo.\n\nCómo usarla:\n1. Importe esta colección y un environment (XAMPP u Hostinger).\n2. En el environment complete las contraseñas del personal (admin_clave, chef_clave, mesero_clave). Si son temporales, primero cámbielas en login.html: con clave temporal la API responde 403 \"cambiar_clave\".\n3. Ejecute la colección completa con el Runner (en orden).\n\nPostman guarda la cookie de sesión automáticamente; cada \"Login\" cambia el usuario activo.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "mesa", "value": "5" },
+    { "key": "codigo_mesa", "value": "" },
+    { "key": "token_pedido", "value": "" },
+    { "key": "id_pedido", "value": "" },
+    { "key": "id_llamado", "value": "" }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": { "type": "text/javascript", "exec": ["pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });"] }
+    }
+  ],
+  "item": [
+    {
+      "name": "0. Estado",
+      "item": [
+        {
+          "name": "Estado de la API",
+          "request": { "method": "GET", "url": "{{base_url}}/api/status" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200 y conectado a la base', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().ok).to.eql(true); });"
+          ] } }]
+        },
+        {
+          "name": "Configuración pública",
+          "request": { "method": "GET", "url": "{{base_url}}/api/config" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const c = pm.response.json();",
+            "pm.test('impuesto y propina', () => { pm.expect(c).to.have.property('impuesto_pct'); pm.expect(c).to.have.property('propina_pct'); });",
+            "pm.test('SERVER_URL configurado', () => pm.expect(c.server_url, 'complete SERVER_URL en api/config.local.php').to.match(/^https?:\\/\\//));"
+          ] } }]
+        }
+      ]
+    },
+    {
+      "name": "1. Administrador: código QR de la mesa",
+      "item": [
+        {
+          "name": "Login administrador",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"usuario\": \"{{admin_usuario}}\", \"password\": \"{{admin_clave}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('login 200', () => pm.response.to.have.status(200));",
+            "pm.test('ya cambió la clave temporal', () => pm.expect(pm.response.json().user.debe_cambiar_clave).to.eql(false));"
+          ] } }]
+        },
+        {
+          "name": "Mesas (con su código QR)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/mesas" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const mesa = pm.response.json().find(m => String(m.numero_mesa) === String(pm.collectionVariables.get('mesa')));",
+            "pm.test('la mesa existe y trae su código', () => pm.expect(mesa.codigo_qr).to.match(/^[0-9a-f]{10}$/));",
+            "pm.collectionVariables.set('codigo_mesa', mesa.codigo_qr);"
+          ] } }]
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{base_url}}/api/auth/logout", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    },
+    {
+      "name": "2. Comensal",
+      "item": [
+        {
+          "name": "Categorías",
+          "request": { "method": "GET", "url": "{{base_url}}/api/categorias" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 con categorías', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().length).to.be.above(0); });"] } }]
+        },
+        {
+          "name": "Carta (productos disponibles)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/productos?disponible=1" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('precios enteros', () => pm.response.json().forEach(p => pm.expect(Number.isInteger(p.precio)).to.eql(true)));"] } }]
+        },
+        {
+          "name": "Validar mesa del QR",
+          "request": { "method": "GET", "url": "{{base_url}}/api/mesas/{{mesa}}?c={{codigo_mesa}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('mesa válida con QR', () => { pm.response.to.have.status(200); pm.expect(pm.response.json().origen).to.eql('qr'); });"] } }]
+        },
+        {
+          "name": "Validar mesa con código equivocado (403)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/mesas/{{mesa}}?c=0000000000" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('403 qr_invalido', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().codigo).to.eql('qr_invalido'); });"] } }]
+        },
+        {
+          "name": "Mesas para entrar sin QR",
+          "request": { "method": "GET", "url": "{{base_url}}/api/mesas/disponibles" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 si PERMITIR_SIN_QR = true, 403 si es false', () => pm.expect([200, 403]).to.include(pm.response.code));"] } }]
+        },
+        {
+          "name": "Validar cupón",
+          "request": { "method": "GET", "url": "{{base_url}}/api/cupones/validar?codigo=BIENVENIDO" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200 (o 404 si el cupón ya no existe)', () => pm.expect([200, 404]).to.include(pm.response.code));"] } }]
+        },
+        {
+          "name": "Crear pedido",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/pedidos",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"mesa\": {{mesa}},\n  \"codigo\": \"{{codigo_mesa}}\",\n  \"items\": [{ \"id\": 5, \"cantidad\": 2 }, { \"id\": 10, \"cantidad\": 1 }],\n  \"notas\": \"Prueba desde Postman\",\n  \"propina\": true\n}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('201 creado', () => pm.response.to.have.status(201));",
+            "const p = pm.response.json();",
+            "pm.test('totales calculados en el servidor', () => pm.expect(p.total).to.eql(p.subtotal - p.descuento + p.impuesto + p.propina));",
+            "pm.collectionVariables.set('token_pedido', p.token);",
+            "pm.collectionVariables.set('id_pedido', p.id_pedido);"
+          ] } }]
+        },
+        {
+          "name": "Pedido inválido: cantidad 11 (400)",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/pedidos",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"mesa\": {{mesa}}, \"codigo\": \"{{codigo_mesa}}\", \"items\": [{\"id\": 1, \"cantidad\": 11}]}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('400', () => pm.response.to.have.status(400));"] } }]
+        },
+        {
+          "name": "Seguimiento del pedido (token)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/pedidos/token/{{token_pedido}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('pendiente', () => pm.expect(pm.response.json().estado).to.eql('pendiente'));"] } }]
+        },
+        {
+          "name": "Llamar al mesero",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/llamados",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"mesa\": {{mesa}}, \"codigo\": \"{{codigo_mesa}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('201 (o 200 si ya había un llamado pendiente)', () => pm.expect([200, 201]).to.include(pm.response.code));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "3. Cocina",
+      "item": [
+        {
+          "name": "Login chef",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"usuario\": \"{{chef_usuario}}\", \"password\": \"{{chef_clave}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('login 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Pedidos pendientes y en preparación",
+          "request": { "method": "GET", "url": "{{base_url}}/api/pedidos?estado=pendiente,en_preparacion&items=1&orden=asc" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('el pedido nuevo está en la lista', () => pm.expect(pm.response.json().map(p => String(p.id_pedido))).to.include(String(pm.collectionVariables.get('id_pedido'))));"] } }]
+        },
+        {
+          "name": "Entregar antes de estar listo (409)",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/api/pedidos/{{id_pedido}}/estado",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"estado\": \"entregado\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('409: aún no está listo', () => pm.response.to.have.status(409));"] } }]
+        },
+        {
+          "name": "Empezar (en preparación)",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/api/pedidos/{{id_pedido}}/estado",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"estado\": \"en_preparacion\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Listo",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/api/pedidos/{{id_pedido}}/estado",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"estado\": \"listo\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{base_url}}/api/auth/logout", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    },
+    {
+      "name": "4. Mesero",
+      "item": [
+        {
+          "name": "Login mesero",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"usuario\": \"{{mesero_usuario}}\", \"password\": \"{{mesero_clave}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('login 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Llamados pendientes",
+          "request": { "method": "GET", "url": "{{base_url}}/api/llamados" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "pm.test('200', () => pm.response.to.have.status(200));",
+            "const l = pm.response.json().find(x => String(x.numero_mesa) === String(pm.collectionVariables.get('mesa')));",
+            "pm.test('la mesa llamó', () => pm.expect(l).to.be.an('object'));",
+            "if (l) pm.collectionVariables.set('id_llamado', l.id_llamado);"
+          ] } }]
+        },
+        {
+          "name": "Atender llamado",
+          "request": { "method": "PUT", "url": "{{base_url}}/api/llamados/{{id_llamado}}/atender", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" } },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "El mesero no puede ver estadísticas (403)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('403 sin_permiso', () => { pm.response.to.have.status(403); pm.expect(pm.response.json().codigo).to.eql('sin_permiso'); });"] } }]
+        },
+        {
+          "name": "Entregar",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/api/pedidos/{{id_pedido}}/estado",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"estado\": \"entregado\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Método de pago",
+          "request": {
+            "method": "PUT", "url": "{{base_url}}/api/facturas/{{id_pedido}}/pago",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"metodo_pago\": \"tarjeta\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{base_url}}/api/auth/logout", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    },
+    {
+      "name": "5. Comensal: comprobante",
+      "item": [
+        {
+          "name": "Factura por token",
+          "request": { "method": "GET", "url": "{{base_url}}/api/facturas/token/{{token_pedido}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+            "const f = pm.response.json();",
+            "pm.test('comprobante FAC-', () => pm.expect(f.numero_factura).to.match(/^FAC-/));",
+            "pm.test('pagado con tarjeta', () => pm.expect(f.metodo_pago).to.eql('tarjeta'));",
+            "pm.collectionVariables.set('codigo_verificacion', f.codigo_verificacion);"
+          ] } }]
+        },
+        {
+          "name": "Verificación pública (QR del comprobante)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/verificar/{{codigo_verificacion}}" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('válido', () => pm.expect(pm.response.json().valido).to.eql(true));"] } }]
+        }
+      ]
+    },
+    {
+      "name": "6. Administración",
+      "item": [
+        {
+          "name": "Login administrador",
+          "request": {
+            "method": "POST", "url": "{{base_url}}/api/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\"usuario\": \"{{admin_usuario}}\", \"password\": \"{{admin_clave}}\"}" }
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('login 200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Estadísticas del día",
+          "request": { "method": "GET", "url": "{{base_url}}/api/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('hay ventas hoy', () => pm.expect(pm.response.json().ventas_hoy).to.be.above(0));"] } }]
+        },
+        {
+          "name": "Pedidos de hoy",
+          "request": { "method": "GET", "url": "{{base_url}}/api/pedidos?fecha={{hoy}}" },
+          "event": [
+            { "listen": "prerequest", "script": { "type": "text/javascript", "exec": ["const d = new Date(Date.now() - 5 * 3600 * 1000); // hora de Colombia", "pm.variables.set('hoy', d.toISOString().slice(0, 10));"] } },
+            { "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('incluye el pedido de esta prueba', () => pm.expect(pm.response.json().map(p => String(p.id_pedido))).to.include(String(pm.collectionVariables.get('id_pedido'))));"] } }
+          ]
+        },
+        {
+          "name": "Carta completa (incluye agotados)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/productos?todas=1" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Personal",
+          "request": { "method": "GET", "url": "{{base_url}}/api/usuarios" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('no expone hashes', () => pm.expect(pm.response.text()).to.not.include('contrasena_hash'));"] } }]
+        },
+        {
+          "name": "Cupones",
+          "request": { "method": "GET", "url": "{{base_url}}/api/cupones" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('200', () => pm.response.to.have.status(200));"] } }]
+        },
+        {
+          "name": "Reporte de ventas por día",
+          "request": { "method": "GET", "url": "{{base_url}}/api/reportes/ventas?periodo=dia" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('30 días', () => pm.expect(pm.response.json().series.length).to.eql(30));"] } }]
+        },
+        {
+          "name": "Reporte por mes en CSV",
+          "request": { "method": "GET", "url": "{{base_url}}/api/reportes/ventas.csv?periodo=mes" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('CSV', () => pm.expect(pm.response.headers.get('Content-Type')).to.include('text/csv'));"] } }]
+        },
+        {
+          "name": "Diagnóstico de SERVER_URL (QR)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/qr/info" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('SERVER_URL configurado', () => pm.expect(pm.response.json().configurado).to.eql(true));"] } }]
+        },
+        {
+          "name": "Descargar respaldo (.sql.gz)",
+          "request": { "method": "GET", "url": "{{base_url}}/api/respaldo" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('archivo gzip', () => { pm.response.to.have.status(200); pm.expect(pm.response.headers.get('Content-Type')).to.include('gzip'); });"] } }]
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "url": "{{base_url}}/api/auth/logout", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{}" } }
+        }
+      ]
+    },
+    {
+      "name": "7. Seguridad",
+      "item": [
+        {
+          "name": "Sin sesión → 401",
+          "request": { "method": "GET", "url": "{{base_url}}/api/stats" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('401 sin_sesion', () => { pm.response.to.have.status(401); pm.expect(pm.response.json().codigo).to.eql('sin_sesion'); });"] } }]
+        },
+        {
+          "name": "Escribir sin sesión → 401",
+          "request": {
+            "method": "DELETE", "url": "{{base_url}}/api/productos/1"
+          },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('401', () => pm.response.to.have.status(401));"] } }]
+        },
+        {
+          "name": "Archivo de configuración bloqueado",
+          "request": { "method": "GET", "url": "{{base_url}}/api/config.local.php" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('403 o 404', () => pm.expect([403, 404]).to.include(pm.response.code));", "pm.test('no muestra contraseñas', () => pm.expect(pm.response.text()).to.not.include('DB_PASS'));"] } }]
+        },
+        {
+          "name": "Ruta inexistente → 404 JSON",
+          "request": { "method": "GET", "url": "{{base_url}}/api/no-existe" },
+          "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": ["pm.test('404 JSON', () => { pm.response.to.have.status(404); pm.expect(pm.response.json().ok).to.eql(false); });"] } }]
+        }
+      ]
+    }
+  ]
+}
