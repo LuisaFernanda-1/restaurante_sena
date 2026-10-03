@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   
   <!-- Iconos de Tabler: los usaste para mantener consistencia visual -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   
   <style>
     /* ============================================================ */
@@ -543,13 +543,18 @@
         font-size: 0.8rem;
       }
     }
+    .status-cancelado { background: #fff3f3; color: #c0392b; }
+    .aviso-preliminar {
+      background: #fff9e6; border: 1px solid #ffe5b4; color: #7a5a00;
+      border-radius: 14px; padding: .9rem 1.1rem; margin-bottom: 1.4rem; font-size: .88rem;
+    }
+    .total-row.descuento span:last-child { color: var(--g); font-weight: 600; }
+    .nota-legal { font-size: .72rem; color: var(--tm); margin-top: .6rem; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
 
-<!-- ============================================================ -->
-<!-- NAVBAR (no se imprime) -->
-<!-- ============================================================ -->
 <nav class="navbar no-print">
   <div class="nav-inner">
     <a href="index.html" class="logo">
@@ -557,76 +562,67 @@
       <span class="logo-text">Restaurante <strong>SENA</strong></span>
     </a>
     <div class="nav-links">
-      <a href="pedido.html" class="btn btn-ghost" style="padding: 0.6rem 1.2rem;">
+      <a href="pedido.html" class="btn btn-ghost enlace-pedido" style="padding: 0.6rem 1.2rem;">
         <i class="ti ti-arrow-left"></i> Volver al pedido
       </a>
     </div>
   </div>
 </nav>
 
-<!-- ============================================================ -->
-<!-- CONTENEDOR PRINCIPAL -->
-<!-- ============================================================ -->
 <div class="invoice-container">
 
-  <!-- ============================================================ -->
-  <!-- ESTADO: SIN PEDIDO ACTIVO -->
-  <!-- ============================================================ -->
-  <div id="noOrder" style="display: none;">
+  <!-- SIN PEDIDO -->
+  <div id="noOrder" hidden>
     <div class="empty-state">
       <div class="empty-icon">🧾</div>
       <h2 style="margin-bottom: 0.5rem;">No hay factura disponible</h2>
-      <p style="color: var(--tm); margin-bottom: 1.5rem;">No encontramos un pedido activo para generar la factura.</p>
-      <a href="menu.html" class="btn btn-primary">
+      <p style="color: var(--tm); margin-bottom: 1.5rem;" id="noOrderTexto">No encontramos un pedido en este dispositivo.</p>
+      <a href="menu.html" class="btn btn-primary enlace-menu">
         <i class="ti ti-book"></i> Ver Menú
       </a>
     </div>
   </div>
 
-  <!-- ============================================================ -->
-  <!-- FACTURA (visible cuando hay pedido) -->
-  <!-- ============================================================ -->
-  <div id="facturaView">
+  <div id="facturaView" hidden>
     <div class="invoice-card">
       <div class="invoice-content">
-        
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- CABECERA: datos del restaurante + número de factura      -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+
+        <div class="aviso-preliminar no-print" id="avisoPreliminar" hidden>
+          <strong>Cuenta preliminar.</strong> El comprobante definitivo se genera cuando tu pedido sea
+          entregado. Esta página se actualiza sola.
+        </div>
+
+        <!-- CABECERA -->
         <div class="invoice-header">
           <div class="restaurant-info">
             <div class="logo-icon" style="margin-bottom: 0.5rem;">🍽️</div>
-            <h2>Restaurante SENA</h2>
-            <p>NIT: 899.999.034-1</p>
-            <p>Centro de Diseño y Metrología</p>
-            <p>Bogotá D.C., Colombia</p>
+            <h2 id="restNombre">Restaurante SENA</h2>
+            <p id="restNit" hidden></p>
+            <p id="restDireccion" hidden></p>
           </div>
           <div class="factura-info">
-            <div class="factura-badge">FACTURA ELECTRÓNICA</div>
+            <div class="factura-badge" id="facTipo">COMPROBANTE DE VENTA</div>
             <div class="factura-numero" id="facNumero">—</div>
             <div class="factura-meta">
               <div><i class="ti ti-calendar"></i> <span id="facFecha">—</span></div>
               <div style="margin-top: 0.3rem;"><i class="ti ti-armchair"></i> <strong id="facMesa">—</strong></div>
+              <div style="margin-top: 0.3rem;"><i class="ti ti-receipt"></i> <span id="facPedido">—</span></div>
             </div>
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- ESTADO DEL PEDIDO (visual, no editable)                  -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- ESTADO -->
         <div class="status-card">
           <div class="status-label">
             <i class="ti ti-info-circle"></i>
-            <span>Estado actual del pedido</span>
+            <span>Estado del pedido</span>
           </div>
           <div id="facEstadoBadge" class="status-badge status-pendiente">
-            <i class="ti ti-timer"></i> <span id="facEstadoText">—</span>
+            <i class="ti ti-clock" id="facEstadoIcono"></i> <span id="facEstadoText">—</span>
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- TABLA DE PRODUCTOS CONSUMIDOS                            -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- PRODUCTOS -->
         <table class="items-table">
           <thead>
             <tr>
@@ -639,34 +635,19 @@
           <tbody id="facItems"></tbody>
         </table>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- TOTALES: subtotal, servicio, IVA y total final          -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- TOTALES -->
         <div class="totals-section">
           <div class="totals-card">
-            <div class="total-row">
-              <span>Subtotal</span>
-              <span id="facSubtotal">—</span>
-            </div>
-            <div class="total-row">
-              <span>Servicio (10%)</span>
-              <span id="facServicio">—</span>
-            </div>
-            <div class="total-row">
-              <span>IVA (19%)</span>
-              <span id="facIva">—</span>
-            </div>
-            <div class="total-grand">
-              <span>TOTAL</span>
-              <span id="facTotal">—</span>
-            </div>
+            <div class="total-row"><span>Subtotal</span><span id="facSubtotal">—</span></div>
+            <div class="total-row descuento" id="filaDescuento" hidden><span id="facDescuentoTxt">Descuento</span><span id="facDescuento">—</span></div>
+            <div class="total-row"><span id="facImpuestoTxt">Impoconsumo</span><span id="facImpuesto">—</span></div>
+            <div class="total-row"><span>Propina voluntaria</span><span id="facPropina">—</span></div>
+            <div class="total-grand"><span>TOTAL</span><span id="facTotal">—</span></div>
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- MÉTODO DE PAGO (con selector POST para actualizar)       -->
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <div class="payment-section">
+        <!-- MÉTODO DE PAGO (lo registra el personal al cobrar) -->
+        <div class="payment-section" id="seccionPago" hidden>
           <div class="payment-info">
             <div class="payment-icon" id="pagoIcon">💵</div>
             <div class="payment-details">
@@ -674,29 +655,10 @@
               <div class="payment-method" id="facMetodoPago">Efectivo</div>
             </div>
           </div>
-          
-          <!-- FORMULARIO POST para cambiar método de pago -->
-          <!-- Esto cumple con los criterios 1 y 2 de evaluación -->
-          <form id="pagoForm" method="POST" onsubmit="return cambiarMetodoPago(event)">
-            <input type="hidden" name="action" value="actualizarPago">
-            <input type="hidden" id="hiddenPedidoId" name="id_pedido" value="">
-            <div class="payment-selector">
-              <select name="metodo_pago" id="metodoPagoSelect" class="payment-select">
-                <option value="efectivo">💵 Efectivo</option>
-                <option value="tarjeta">💳 Tarjeta Débito/Crédito</option>
-                <option value="digital">📱 Pago Digital (Nequi/Daviplata)</option>
-              </select>
-              <button type="submit" class="btn btn-secondary" style="padding: 0.6rem 1.2rem;">
-                <i class="ti ti-refresh"></i> Cambiar
-              </button>
-            </div>
-          </form>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- NOTAS ADICIONALES DEL PEDIDO (si las hay)                -->
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <div id="facNotasWrap" style="display: none;">
+        <!-- NOTAS -->
+        <div id="facNotasWrap" hidden>
           <div class="notes-section">
             <div class="notes-title">
               <i class="ti ti-notes"></i> Notas especiales
@@ -705,229 +667,130 @@
           </div>
         </div>
 
-        <!-- ═══════════════════════════════════════════════════════ -->
-        <!-- FOOTER CON AGRADECIMIENTO                               -->
-        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- PIE -->
         <div class="invoice-footer">
           <div class="footer-stars">★★★★★</div>
           <div class="footer-message">¡Gracias por tu visita!</div>
-          <div class="footer-thanks">Esta factura es tu comprobante de pago válido</div>
-          <div class="footer-legal">GA7-220501096-AA2-EV02 · Restaurante SENA · SENA Análisis y Desarrollo de Software</div>
+          <div class="footer-thanks">La propina es voluntaria.</div>
+          <div class="nota-legal">Este comprobante no reemplaza la factura electrónica de venta (DIAN).
+            Si la necesitas, solicítala al personal del restaurante.</div>
         </div>
-        
+
       </div>
     </div>
 
-    <!-- ═══════════════════════════════════════════════════════════ -->
-    <!-- BOTONES DE ACCIÓN (no se imprimen)                          -->
-    <!-- ═══════════════════════════════════════════════════════════ -->
     <div class="action-buttons no-print">
       <button onclick="window.print()" class="btn btn-primary">
-        <i class="ti ti-printer"></i> Imprimir Factura
+        <i class="ti ti-printer"></i> Imprimir
       </button>
-      <a href="menu.html" class="btn btn-ghost">
+      <a href="menu.html" class="btn btn-ghost enlace-menu">
         <i class="ti ti-plus"></i> Nuevo Pedido
       </a>
-      <a href="pedido.html" class="btn btn-secondary">
+      <a href="pedido.html" class="btn btn-secondary enlace-pedido">
         <i class="ti ti-eye"></i> Ver Estado del Pedido
       </a>
     </div>
   </div>
 </div>
 
-<!-- ============================================================ -->
-<!-- SCRIPTS: lógica de carga y actualización de la factura      -->
-<!-- ============================================================ -->
 <script src="js/main.js"></script>
 <script src="js/api.js"></script>
-
+<script src="js/cliente.js"></script>
 <script>
-  // ============================================================
-  // FUNCIÓN PRINCIPAL: obtiene el pedido de la sesión
-  // Así como lo tenías en tus otras páginas
-  // ============================================================
-  const raw = JSP.session.get('lastOrder');
-  const pedido = raw ? JSON.parse(raw) : null;
+  const token = new URLSearchParams(location.search).get('t') || MisPedidos.ultimo()?.token;
+  const NOMBRES_PAGO = { efectivo: ['💵', 'Efectivo'], tarjeta: ['💳', 'Tarjeta débito/crédito'], digital: ['📱', 'Pago digital (Nequi/Daviplata)'] };
+  let cfg = { impuesto_nombre: 'Impoconsumo', impuesto_pct: 8 };
+  let temporizador = null;
 
-  // Mapeo de íconos según método de pago (para mostrar el emoji correcto)
-  const iconosPago = { 
-    efectivo: '💵', 
-    tarjeta: '💳', 
-    digital: '📱' 
-  };
-  
-  // Mapeo de estados del pedido a textos amigables
-  const estadoLabels = {
-    pendiente: '⏳ Pendiente',
-    en_preparacion: '🔥 En Preparación',
-    listo: '✅ Listo para servir',
-    entregado: '✓ Entregado',
-    cancelado: '✕ Cancelado'
-  };
-  
-  // Mapeo de estados a clases CSS para los colores
-  const estadoClases = {
-    pendiente: 'status-pendiente',
-    en_preparacion: 'status-en_preparacion',
-    listo: 'status-listo',
-    entregado: 'status-entregado',
-    cancelado: 'status-pendiente'
-  };
+  document.querySelectorAll('.enlace-menu').forEach(a => a.href = Mesa.urlMenu());
+  if (token) document.querySelectorAll('.enlace-pedido').forEach(a => a.href = `pedido.html?t=${encodeURIComponent(token)}`);
 
-  // ============================================================
-  // VALIDACIÓN: si no hay pedido, mostrar pantalla vacía
-  // ============================================================
-  if (!pedido) {
-    document.getElementById('noOrder').style.display = 'block';
-    document.getElementById('facturaView').style.display = 'none';
-  } else {
-    cargarFactura(pedido);
+  function texto(id, valor) { document.getElementById(id).textContent = valor; }
+
+  function sinFactura(msg) {
+    document.getElementById('facturaView').hidden = true;
+    document.getElementById('noOrder').hidden = false;
+    if (msg) texto('noOrderTexto', msg);
   }
 
-  // ============================================================
-  // FUNCIÓN ASYNC: carga los datos de la factura
-  // Intenta obtenerlos desde la API, si falla usa datos locales
-  // ============================================================
-  async function cargarFactura(pedido) {
-    let factura = null;
-    
-    // Intento 1: obtener factura desde MySQL vía API
-    try {
-      const r = await apiGetFactura(pedido.id);
-      if (r.ok && r.data) factura = r.data;
-    } catch(e) {
-      console.log('API no disponible, usando datos locales');
-    }
+  /**
+   * datos: la factura (si el pedido ya se entregó) o el pedido (cuenta preliminar).
+   */
+  function pintar(datos, esFactura) {
+    document.getElementById('noOrder').hidden = true;
+    document.getElementById('facturaView').hidden = false;
+    document.getElementById('avisoPreliminar').hidden = esFactura || datos.estado === 'cancelado';
 
-    // Si no hay API, uso los datos del pedido en sessionStorage
-    const items  = factura?.items  || pedido.items  || [];
-    const sub    = factura?.subtotal  || pedido.subtotal  || 0;
-    const srv    = factura?.servicio  || pedido.servicio  || 0;
-    const iva    = factura?.iva       || pedido.iva       || 0;
-    const total  = factura?.total     || pedido.total     || 0;
-    const numFac = factura?.numero_factura || `FAC-${String(pedido.id).padStart(6, '0')}`;
-    const metodo = factura?.metodo_pago || 'efectivo';
-    const estado = pedido.estado || 'pendiente';
+    texto('restNombre', cfg.restaurante || 'Restaurante SENA');
+    if (cfg.nit) { texto('restNit', `NIT: ${cfg.nit}`); document.getElementById('restNit').hidden = false; }
+    if (cfg.direccion) { texto('restDireccion', cfg.direccion); document.getElementById('restDireccion').hidden = false; }
 
-    // ============================================================
-    // RENDERIZADO: llenar todos los campos de la factura
-    // ============================================================
-    
-    // Cabecera
-    document.getElementById('facNumero').textContent = numFac;
-    document.getElementById('facFecha').textContent = formatFecha(pedido.fecha || new Date().toISOString());
-    document.getElementById('facMesa').textContent = `Mesa #${pedido.mesa || pedido.numero_mesa || '—'}`;
-    document.getElementById('hiddenPedidoId').value = pedido.id || '';
+    texto('facTipo', esFactura ? 'COMPROBANTE DE VENTA' : 'CUENTA PRELIMINAR');
+    texto('facNumero', esFactura ? datos.numero_factura : '—');
+    texto('facFecha', formatFecha(esFactura ? datos.fecha_factura : datos.fecha_pedido));
+    texto('facMesa', `Mesa #${datos.numero_mesa}`);
+    texto('facPedido', `Pedido ${datos.numero_pedido}`);
 
-    // Estado del pedido (con su color correspondiente)
-    const estadoBadge = document.getElementById('facEstadoBadge');
-    const estadoText = document.getElementById('facEstadoText');
-    estadoText.textContent = estadoLabels[estado] || estado;
-    estadoBadge.className = `status-badge ${estadoClases[estado] || 'status-pendiente'}`;
-    
-    // Cambiar ícono según el estado
-    let estadoIcono = '';
-    if (estado === 'pendiente') estadoIcono = 'ti-timer';
-    else if (estado === 'en_preparacion') estadoIcono = 'ti-chef-hat';
-    else if (estado === 'listo') estadoIcono = 'ti-circle-check';
-    else if (estado === 'entregado') estadoIcono = 'ti-hand-click';
-    else estadoIcono = 'ti-info-circle';
-    
-    estadoBadge.innerHTML = `<i class="${estadoIcono}"></i> <span id="facEstadoText">${estadoLabels[estado] || estado}</span>`;
+    const info = ESTADOS_PEDIDO[datos.estado] || ESTADOS_PEDIDO.pendiente;
+    document.getElementById('facEstadoBadge').className = `status-badge status-${datos.estado}`;
+    document.getElementById('facEstadoIcono').className = `ti ${info.icono}`;
+    texto('facEstadoText', info.texto);
 
-    // Tabla de productos (con emoji y formato)
-    const tbody = document.getElementById('facItems');
-    tbody.innerHTML = items.map(item => `
+    document.getElementById('facItems').innerHTML = datos.items.map(i => `
       <tr>
-        <td>${item.emoji ? item.emoji + ' ' : '🍽️ '}${item.nombre || item.name || '—'}</td>
-        <td style="text-align: center">${item.qty || item.cantidad || 1}</td>
-        <td style="text-align: right">${formatCOP(item.precio_unit || item.precio || 0)}</td>
-        <td style="text-align: right">${formatCOP(item.subtotal || (item.precio || 0) * (item.qty || item.cantidad || 1))}</td>
-      </tr>
-    `).join('');
+        <td>${esc(i.emoji || '🍽️')} ${esc(i.nombre)}</td>
+        <td style="text-align: center">${i.cantidad}</td>
+        <td style="text-align: right">${formatCOP(i.precio_unit)}</td>
+        <td style="text-align: right">${formatCOP(i.subtotal)}</td>
+      </tr>`).join('');
 
-    // Totales
-    document.getElementById('facSubtotal').textContent = formatCOP(sub);
-    document.getElementById('facServicio').textContent = formatCOP(srv);
-    document.getElementById('facIva').textContent = formatCOP(iva);
-    document.getElementById('facTotal').textContent = formatCOP(total);
+    const impNombre = esFactura ? datos.impuesto_nombre : cfg.impuesto_nombre;
+    const impPct = esFactura ? datos.impuesto_pct : cfg.impuesto_pct;
+    texto('facSubtotal', formatCOP(datos.subtotal));
+    document.getElementById('filaDescuento').hidden = !datos.descuento;
+    texto('facDescuentoTxt', datos.cupon ? `Descuento (${datos.cupon})` : 'Descuento');
+    texto('facDescuento', '− ' + formatCOP(datos.descuento));
+    texto('facImpuestoTxt', `${impNombre} (${pct(impPct)}%)`);
+    texto('facImpuesto', formatCOP(datos.impuesto));
+    texto('facPropina', formatCOP(datos.propina));
+    texto('facTotal', formatCOP(datos.total));
 
-    // Método de pago
-    document.getElementById('facMetodoPago').textContent = metodo.charAt(0).toUpperCase() + metodo.slice(1);
-    document.getElementById('pagoIcon').textContent = iconosPago[metodo] || '💵';
-    document.getElementById('metodoPagoSelect').value = metodo;
+    document.getElementById('seccionPago').hidden = !esFactura;
+    if (esFactura) {
+      const [icono, nombre] = NOMBRES_PAGO[datos.metodo_pago] || NOMBRES_PAGO.efectivo;
+      texto('pagoIcon', icono);
+      texto('facMetodoPago', nombre);
+    }
 
-    // Notas adicionales (si existen)
-    const notas = pedido.notas || factura?.notas || '';
-    if (notas) {
-      const notasWrap = document.getElementById('facNotasWrap');
-      notasWrap.style.display = 'block';
-      document.getElementById('facNotas').textContent = notas;
+    document.getElementById('facNotasWrap').hidden = !datos.notas;
+    texto('facNotas', datos.notas || '');
+  }
+
+  async function cargar() {
+    const rf = await apiFetch(`/facturas/token/${encodeURIComponent(token)}`);
+    if (rf.ok) {
+      pintar(rf.data, true);
+      if (temporizador) clearInterval(temporizador);
+      return;
+    }
+    // Aún no hay factura: mostrar la cuenta preliminar del pedido
+    const rp = await apiFetch(`/pedidos/token/${encodeURIComponent(token)}`);
+    if (rp.ok) {
+      pintar(rp.data, false);
+      if (rp.data.estado === 'cancelado' && temporizador) clearInterval(temporizador);
+    } else if (rp.status === 404) {
+      sinFactura('El enlace no corresponde a un pedido.');
+      if (temporizador) clearInterval(temporizador);
     }
   }
 
-  // ============================================================
-  // FUNCIÓN: cambiar método de pago (usa POST - criterio 1 y 2)
-  // ============================================================
-  async function cambiarMetodoPago(e) {
-    e.preventDefault();
-    
-    const metodo = document.getElementById('metodoPagoSelect').value;
-    const pedidoId = document.getElementById('hiddenPedidoId').value;
-
-    // Actualizar en MySQL vía API (si está disponible)
-    if (pedidoId) {
-      try {
-        await apiFetch(`/facturas/${pedidoId}/pago`, {
-          method: 'PUT',
-          body: JSON.stringify({ metodo_pago: metodo })
-        });
-      } catch(e) {
-        console.log('API no disponible, guardando solo localmente');
-      }
-    }
-
-    // Actualizar la interfaz visual inmediatamente
-    document.getElementById('facMetodoPago').textContent = metodo.charAt(0).toUpperCase() + metodo.slice(1);
-    document.getElementById('pagoIcon').textContent = iconosPago[metodo] || '💵';
-    
-    // Mostrar notificación de éxito
-    if (typeof showToast === 'function') {
-      showToast(`✓ Método de pago actualizado a ${metodo}`, 'success');
-    } else {
-      alert(`Método de pago cambiado a: ${metodo}`);
-    }
-    
-    return false;
-  }
-
-  // ============================================================
-  // FUNCIONES AUXILIARES (formato de moneda y fecha)
-  // ============================================================
-  function formatCOP(value) {
-    return new Intl.NumberFormat('es-CO', { 
-      style: 'currency', 
-      currency: 'COP', 
-      minimumFractionDigits: 0 
-    }).format(value || 0);
-  }
-
-  function formatFecha(dateStr) {
-    if (!dateStr) return 'fecha no disponible';
-    try {
-      const d = new Date(dateStr);
-      return d.toLocaleDateString('es-CO', { 
-        day: '2-digit', 
-        month: '2-digit', 
-        year: 'numeric' 
-      }) + ' - ' + d.toLocaleTimeString('es-CO', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-    } catch(e) {
-      return 'fecha reciente';
-    }
-  }
+  (async () => {
+    if (!token || !/^[0-9a-f]{32}$/.test(token)) { sinFactura(); return; }
+    const rc = await apiFetch('/config');
+    if (rc.ok) cfg = rc.data;
+    await cargar();
+    temporizador = setInterval(cargar, 10000);
+  })();
 </script>
 
 </body>

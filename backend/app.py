@@ -8,6 +8,7 @@ Desarrollo:   python app.py
 Producción:   scripts/iniciar_servidor.ps1  (Waitress)
 """
 
+import hmac
 import logging
 import re
 import secrets
@@ -437,18 +438,40 @@ def eliminar_producto(pid):
 
 # ============================================================
 # MESAS
-# GET  /api/mesas               → todas
-# GET  /api/mesas/<numero>      → validar la mesa del QR
-# PUT  /api/mesas/<id>/estado   → cambiar estado
+# GET  /api/mesas                 → todas (personal)
+# GET  /api/mesas/<numero>?c=X    → validar la mesa del QR (comensal)
+# PUT  /api/mesas/<id>/estado     → cambiar estado
+#
+# Cada mesa tiene un código secreto (codigo_qr) que va en su QR:
+#   menu.html?mesa=5&c=<código>
+# Sin el código correcto no se puede pedir ni llamar al mesero a nombre
+# de esa mesa, aunque se cambie el número en la dirección.
 # ============================================================
 ESTADOS_MESA = ("disponible", "ocupada", "reservada", "inactiva")
+
+
+def mesa_por_qr(numero, codigo):
+    """Devuelve la mesa si el número y el código del QR coinciden."""
+    mesa = db.consultar_uno(
+        "SELECT id_mesa, numero_mesa, capacidad, estado, codigo_qr FROM mesas WHERE numero_mesa = %s", (numero,)
+    )
+    if not mesa:
+        raise ErrorAPI(f"La mesa {numero} no existe.", 404, "mesa_no_existe")
+    if not isinstance(codigo, str) or not codigo or not mesa["codigo_qr"] \
+            or not hmac.compare_digest(codigo.strip().lower(), mesa["codigo_qr"]):
+        raise ErrorAPI("El código QR de la mesa no es válido. Escanee de nuevo el QR que está en su mesa.",
+                       403, "qr_invalido")
+    return mesa
 
 
 @app.route("/api/mesas", methods=["GET"])
 @requiere_rol()
 def get_mesas():
     estado = request.args.get("estado")
-    sql = "SELECT id_mesa, numero_mesa, capacidad, estado FROM mesas"
+    columnas = "id_mesa, numero_mesa, capacidad, estado"
+    if usuario_actual()["rol"] == ROL_ADMIN:
+        columnas += ", codigo_qr"          # solo el admin necesita los códigos (QR)
+    sql = f"SELECT {columnas} FROM mesas"
     params = []
     if estado:
         if estado not in ESTADOS_MESA:
@@ -461,13 +484,13 @@ def get_mesas():
 
 @app.route("/api/mesas/<int:numero>", methods=["GET"])
 def get_mesa(numero):
-    row = db.consultar_uno(
-        "SELECT numero_mesa, capacidad, estado FROM mesas WHERE numero_mesa = %s", (numero,)
-    )
-    if not row:
-        raise ErrorAPI(f"La mesa {numero} no existe.", 404)
-    row["activa"] = row["estado"] != "inactiva"
-    return jresp(row)
+    mesa = mesa_por_qr(numero, request.args.get("c"))
+    return jresp({
+        "numero_mesa": mesa["numero_mesa"],
+        "capacidad": mesa["capacidad"],
+        "estado": mesa["estado"],
+        "activa": mesa["estado"] != "inactiva",
+    })
 
 
 @app.route("/api/mesas/<int:mid>/estado", methods=["PUT"])
@@ -625,7 +648,8 @@ def _buscar_cupon(codigo):
 @app.route("/api/pedidos", methods=["POST"])
 def crear_pedido():
     """
-    Cuerpo: {"mesa": 5, "items": [{"id": 3, "cantidad": 2}, ...],
+    Cuerpo: {"mesa": 5, "codigo": "<código del QR>",
+             "items": [{"id": 3, "cantidad": 2}, ...],
              "notas": "...", "cupon": "BIENVENIDO", "propina": true}
     Los precios NO se reciben del cliente: se leen de la base de datos.
     """
@@ -653,9 +677,7 @@ def crear_pedido():
         if cantidades[pid] > 10:
             raise ErrorAPI("Máximo 10 unidades por producto.")
 
-    mesa = db.consultar_uno("SELECT id_mesa, estado FROM mesas WHERE numero_mesa = %s", (numero_mesa,))
-    if not mesa:
-        raise ErrorAPI(f"La mesa {numero_mesa} no existe.", 404)
+    mesa = mesa_por_qr(numero_mesa, data.get("codigo"))
     if mesa["estado"] == "inactiva":
         raise ErrorAPI(f"La mesa {numero_mesa} no está habilitada. Por favor avise al personal.", 409)
 
@@ -839,6 +861,57 @@ def actualizar_metodo_pago(pid):
     if filas == 0 and not db.consultar_uno("SELECT 1 AS ok FROM facturas WHERE id_pedido = %s", (pid,)):
         raise ErrorAPI("Factura no encontrada.", 404)
     return jresp({"ok": True, "msg": f"Método de pago actualizado a {metodo}"})
+
+
+# ============================================================
+# LLAMADOS AL MESERO (botón "Llamar mesero")
+# POST /api/llamados                → el comensal llama (con el código QR)
+# GET  /api/llamados                → llamados pendientes (mesero/admin)
+# PUT  /api/llamados/<id>/atender   → marcar como atendido
+# ============================================================
+@app.route("/api/llamados", methods=["POST"])
+def crear_llamado():
+    if seguridad.limitador_llamados.bloqueado(request.remote_addr):
+        raise ErrorAPI("Ya avisamos al mesero varias veces. Por favor espere un momento.", 429)
+    data = cuerpo_json()
+    mesa = mesa_por_qr(v_entero(data.get("mesa"), "Mesa", 1), data.get("codigo"))
+    seguridad.limitador_llamados.registrar(request.remote_addr)
+    with db.transaccion() as cur:
+        # Una mesa solo tiene un llamado pendiente a la vez.
+        cur.execute("SELECT id_llamado FROM llamados WHERE id_mesa = %s AND estado = 'pendiente' FOR UPDATE",
+                    (mesa["id_mesa"],))
+        if cur.fetchall():
+            return jresp({"ok": True, "ya_pendiente": True,
+                          "msg": "El mesero ya fue avisado y vendrá pronto a tu mesa."})
+        cur.execute("INSERT INTO llamados (id_mesa) VALUES (%s)", (mesa["id_mesa"],))
+    log.info("Mesa %s llamó al mesero", mesa["numero_mesa"])
+    return jresp({"ok": True, "ya_pendiente": False, "msg": "¡Listo! El mesero vendrá a tu mesa en breve."}, 201)
+
+
+@app.route("/api/llamados", methods=["GET"])
+@requiere_rol(ROL_ADMIN, ROL_MESERO)
+def get_llamados():
+    return jresp(db.consultar(
+        """SELECT l.id_llamado, m.numero_mesa, l.estado, l.fecha_solicitud
+           FROM llamados l JOIN mesas m ON l.id_mesa = m.id_mesa
+           WHERE l.estado = 'pendiente'
+           ORDER BY l.fecha_solicitud"""
+    ))
+
+
+@app.route("/api/llamados/<int:lid>/atender", methods=["PUT"])
+@requiere_rol(ROL_ADMIN, ROL_MESERO)
+def atender_llamado(lid):
+    filas, _ = db.ejecutar(
+        """UPDATE llamados SET estado = 'atendido', fecha_atencion = NOW(), id_usuario = %s
+           WHERE id_llamado = %s AND estado = 'pendiente'""",
+        (usuario_actual()["id_usuario"], lid),
+    )
+    if filas == 0:
+        if not db.consultar_uno("SELECT 1 AS ok FROM llamados WHERE id_llamado = %s", (lid,)):
+            raise ErrorAPI("Llamado no encontrado.", 404)
+        return jresp({"ok": True, "msg": "El llamado ya estaba atendido"})
+    return jresp({"ok": True, "msg": "Llamado atendido"})
 
 
 # ============================================================

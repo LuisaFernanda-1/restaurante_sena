@@ -80,6 +80,7 @@ def bd():
                     (generate_password_hash(clave, method="pbkdf2:sha256:1000"), usuario))
     seguridad.limitador_login.limpiar()
     seguridad.limitador_pedidos.limpiar()
+    seguridad.limitador_llamados.limpiar()
     yield
     db.reiniciar_pool()
 
@@ -116,11 +117,18 @@ def admin(como):
     return como("admin")
 
 
+def codigo_mesa(numero):
+    """Código secreto del QR de una mesa (None si la mesa no existe)."""
+    fila = db.consultar_uno("SELECT codigo_qr FROM mesas WHERE numero_mesa = %s", (numero,))
+    return fila["codigo_qr"] if fila else None
+
+
 @pytest.fixture
 def crear_pedido(cliente):
-    """Crea un pedido y devuelve la respuesta JSON."""
+    """Crea un pedido (con el código QR correcto) y devuelve la respuesta JSON."""
     def _crear(mesa=5, items=None, **extra):
-        cuerpo = {"mesa": mesa, "items": items or [{"id": 1, "cantidad": 1}], **extra}
+        cuerpo = {"mesa": mesa, "codigo": codigo_mesa(mesa),
+                  "items": items or [{"id": 1, "cantidad": 1}], **extra}
         r = cliente.post("/api/pedidos", json=cuerpo)
         assert r.status_code == 201, r.get_json()
         return r.get_json()

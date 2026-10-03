@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Restaurante SENA | Sistema QR de Pedidos</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/styles.css">
 
   <style>
@@ -696,11 +696,11 @@
       <div class="hero-btns fade-up">
         <button class="btn-primary" onclick="openModal()">
           <i class="ti ti-qrcode" aria-hidden="true"></i>
-          Escanear / Ingresar Mesa
+          ¿Cómo pedir?
         </button>
-        <a href="menu.html?mesa=demo" class="btn-ghost">
+        <a href="menu.html" class="btn-ghost">
           <i class="ti ti-book" aria-hidden="true"></i>
-          Ver Menú Demo
+          Ver la carta
         </a>
       </div>
       <div class="hero-pills fade-up">
@@ -914,25 +914,18 @@
       <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">
         <i class="ti ti-x" aria-hidden="true"></i>
       </button>
-      <h2>Ingresa tu mesa</h2>
-      <p>Selecciona o escribe el número de tu mesa para ver el menú y ordenar.</p>
-
-      <form id="mesaForm" method="GET" action="menu.html" onsubmit="return validateMesa()">
-        <div class="form-group">
-          <label class="form-label" for="mesa">Número de Mesa</label>
-          <div class="fi-wrap">
-            <i class="ti ti-armchair icon-pre" aria-hidden="true"></i>
-            <input type="number" id="mesa" name="mesa"
-              min="1" max="50" placeholder="Ej: 5"
-              required class="form-input">
-          </div>
-          <span class="form-hint">Mesas disponibles del 1 al 50</span>
-        </div>
-        <button type="submit" class="btn-primary full-width">
-          <i class="ti ti-arrow-right" aria-hidden="true"></i>
-          Ver Menú
-        </button>
-      </form>
+      <h2>¿Cómo pedir?</h2>
+      <p>Cada mesa tiene su propio código QR.</p>
+      <ol style="margin: 0 0 1.4rem 1.2rem; line-height: 1.9; font-size: 14px;">
+        <li>Abre la <strong>cámara</strong> de tu celular.</li>
+        <li>Apunta al <strong>código QR</strong> que está en tu mesa.</li>
+        <li>Toca el enlace que aparece: se abrirá la carta con tu mesa.</li>
+        <li>Elige tus platos y pulsa <strong>Confirmar pedido</strong>.</li>
+      </ol>
+      <a href="menu.html" class="btn-primary full-width" style="text-decoration:none">
+        <i class="ti ti-book" aria-hidden="true"></i>
+        Ver la carta sin pedir
+      </a>
     </div>
   </div>
 
@@ -944,39 +937,31 @@
     /* Modal */
     function openModal() {
       document.getElementById('mesaModal').classList.add('open');
-      setTimeout(() => document.getElementById('mesa').focus(), 120);
     }
     function closeModal() {
       document.getElementById('mesaModal').classList.remove('open');
-    }
-    function validateMesa() {
-      const v = parseInt(document.getElementById('mesa').value);
-      if (isNaN(v) || v < 1 || v > 50) {
-        if (typeof showToast === 'function') {
-          showToast('Número de mesa inválido (1–50)', 'error');
-        }
-        return false;
-      }
-      return true;
     }
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
     });
 
     /* Animaciones fade-up al hacer scroll */
-    const observer = new IntersectionObserver((entries) => {
-      entries.forEach(el => {
-        if (el.isIntersecting) {
-          el.target.style.animation = 'fadeUp .6s ease forwards';
-          observer.unobserve(el.target);
-        }
-      });
-    }, { threshold: 0.12 });
+    // Solo se ocultan para animarlas si el navegador puede mostrarlas luego.
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries) => {
+        entries.forEach(el => {
+          if (el.isIntersecting) {
+            el.target.style.animation = 'fadeUp .6s ease forwards';
+            observer.unobserve(el.target);
+          }
+        });
+      }, { threshold: 0.12 });
 
-    document.querySelectorAll('.step-card, .feat-item, .role-card, .stat-item').forEach(el => {
-      el.style.opacity = '0';
-      observer.observe(el);
-    });
+      document.querySelectorAll('.step-card, .feat-item, .role-card, .stat-item').forEach(el => {
+        el.style.opacity = '0';
+        observer.observe(el);
+      });
+    }
   </script>
 
 </body>

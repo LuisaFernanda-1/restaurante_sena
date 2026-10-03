@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login | Restaurante SENA</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <link rel="stylesheet" href="css/styles.css">
 
   <style>
@@ -479,7 +479,7 @@
   }
 
   function entrar(user) {
-    showToast(`Bienvenido, ${esc(user.nombre)}`, 'success');
+    showToast(`Bienvenido, ${user.nombre}`, 'success');
     setTimeout(() => { window.location.href = paginaDeRol(user.rol); }, 600);
   }
 

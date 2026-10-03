@@ -71,6 +71,8 @@ def test_migracion_desde_version_original(bd, bd_antigua):
     assert cur.fetchone() == {"subtotal": 43500, "impuesto": 8265, "propina": 4350, "total": 56115}
     cur.execute("SELECT impuesto_nombre FROM facturas WHERE id_pedido = 1")
     assert cur.fetchone()["impuesto_nombre"] == "IVA"
+    cur.execute("SELECT COUNT(*) AS n FROM mesas WHERE codigo_qr LIKE 'QR-MESA-%' OR codigo_qr IS NULL")
+    assert cur.fetchone()["n"] == 0
     cur.execute("SELECT nombre FROM productos WHERE id_producto = 3")
     assert cur.fetchone()["nombre"] == "Ceviche de Camarón"
     conn.close()

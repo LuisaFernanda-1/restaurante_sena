@@ -3,6 +3,11 @@
 import pytest
 
 import db
+from conftest import codigo_mesa
+
+
+def estado_mesa(numero):
+    return db.consultar_uno("SELECT estado FROM mesas WHERE numero_mesa = %s", (numero,))["estado"]
 
 
 def test_status(cliente):
@@ -27,13 +32,36 @@ def test_stats_no_falla_con_decimal(admin):
     assert r.get_json()["productos"] == 18
 
 
-@pytest.mark.parametrize("numero,codigo", [(5, 200), (99, 404)])
-def test_validar_mesa(cliente, numero, codigo):
-    assert cliente.get(f"/api/mesas/{numero}").status_code == codigo
+def test_validar_mesa_con_codigo_qr(cliente):
+    r = cliente.get(f"/api/mesas/5?c={codigo_mesa(5)}")
+    assert r.status_code == 200
+    assert r.get_json() == {"numero_mesa": 5, "capacidad": 4, "estado": "disponible", "activa": True}
+    assert "codigo_qr" not in r.get_json()
 
 
-def test_mesa_texto_no_existe(cliente):
-    assert cliente.get("/api/mesas/demo").status_code == 404
+@pytest.mark.parametrize("ruta,codigo", [
+    ("/api/mesas/99?c=abc", 404),                 # mesa que no existe
+    ("/api/mesas/demo", 404),
+    ("/api/mesas/5", 403),                        # sin código
+    ("/api/mesas/5?c=0000000000", 403),           # código de otra mesa / inventado
+])
+def test_validar_mesa_invalida(cliente, ruta, codigo):
+    r = cliente.get(ruta)
+    assert r.status_code == codigo
+
+
+def test_codigo_de_una_mesa_no_sirve_para_otra(cliente):
+    r = cliente.get(f"/api/mesas/7?c={codigo_mesa(5)}")
+    assert r.status_code == 403
+    assert r.get_json()["codigo"] == "qr_invalido"
+    r = cliente.post("/api/pedidos", json={"mesa": 7, "codigo": codigo_mesa(5),
+                                            "items": [{"id": 1, "cantidad": 1}]})
+    assert r.status_code == 403
+
+
+def test_mesa_inactiva_se_informa(cliente):
+    r = cliente.get(f"/api/mesas/16?c={codigo_mesa(16)}")
+    assert r.status_code == 200 and r.get_json()["activa"] is False
 
 
 def test_totales_calculados_en_servidor(crear_pedido):
@@ -75,6 +103,8 @@ def test_precio_enviado_por_cliente_se_ignora(crear_pedido):
     ({"mesa": 5, "items": [{"id": 1, "cantidad": 1}], "notas": "x" * 301}, 400),
 ])
 def test_pedido_invalido(cliente, cuerpo, codigo):
+    if isinstance(cuerpo.get("mesa"), int):
+        cuerpo = {**cuerpo, "codigo": codigo_mesa(cuerpo["mesa"])}
     r = cliente.post("/api/pedidos", json=cuerpo)
     assert r.status_code == codigo
     assert r.get_json()["ok"] is False
@@ -87,21 +117,23 @@ def test_pedido_cuerpo_no_json(cliente):
 
 def test_producto_no_disponible_no_se_puede_pedir(admin):
     admin.put("/api/productos/1", json={"disponible": False})
-    r = admin.post("/api/pedidos", json={"mesa": 5, "items": [{"id": 1, "cantidad": 1}]})
+    r = admin.post("/api/pedidos", json={"mesa": 5, "codigo": codigo_mesa(5), "items": [{"id": 1, "cantidad": 1}]})
     assert r.status_code == 409
 
 
 def test_pedido_es_atomico(cliente):
     """Si falla, no queda un pedido a medias."""
     antes = db.consultar_uno("SELECT COUNT(*) AS n FROM pedidos")["n"]
-    cliente.post("/api/pedidos", json={"mesa": 5, "items": [{"id": 1, "cantidad": 1}, {"id": 9999, "cantidad": 1}]})
+    r = cliente.post("/api/pedidos", json={"mesa": 5, "codigo": codigo_mesa(5),
+                                            "items": [{"id": 1, "cantidad": 1}, {"id": 9999, "cantidad": 1}]})
+    assert r.status_code == 409
     assert db.consultar_uno("SELECT COUNT(*) AS n FROM pedidos")["n"] == antes
 
 
 def test_flujo_de_estados_y_factura(admin, crear_pedido):
     p = crear_pedido(mesa=5)
     pid = p["id_pedido"]
-    assert admin.get("/api/mesas/5").get_json()["estado"] == "ocupada"
+    assert estado_mesa(5) == "ocupada"
     assert admin.get(f"/api/facturas/{pid}").status_code == 404   # aún no hay factura
 
     def cambiar(estado):
@@ -119,7 +151,7 @@ def test_flujo_de_estados_y_factura(admin, crear_pedido):
     assert fac["total"] == p["total"]
     assert fac["impuesto_nombre"] == "Impoconsumo"
     assert len(fac["codigo_verificacion"]) == 32
-    assert admin.get("/api/mesas/5").get_json()["estado"] == "disponible"
+    assert estado_mesa(5) == "disponible"
     assert admin.get("/api/stats").get_json()["ventas_hoy"] == p["total"]
 
 
@@ -127,7 +159,7 @@ def test_mesa_sigue_ocupada_si_tiene_otro_pedido(admin, crear_pedido):
     p1 = crear_pedido(mesa=3)
     crear_pedido(mesa=3)
     admin.put(f"/api/pedidos/{p1['id_pedido']}/estado", json={"estado": "cancelado"})
-    assert admin.get("/api/mesas/3").get_json()["estado"] == "ocupada"
+    assert estado_mesa(3) == "ocupada"
 
 
 def test_cancelado_no_cuenta_en_ventas(admin, crear_pedido):

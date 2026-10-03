@@ -115,6 +115,7 @@ class LimitadorIntentos:
 limitador_login = LimitadorIntentos()
 # Crear pedidos es público: se limita por IP para evitar abusos en la red.
 limitador_pedidos = LimitadorIntentos(maximo=20, ventana=10 * 60)
+limitador_llamados = LimitadorIntentos(maximo=10, ventana=10 * 60)
 
 
 # ------------------------------------------------------------

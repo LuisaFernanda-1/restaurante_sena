@@ -90,7 +90,7 @@ CREATE TABLE mesas (
   numero_mesa INT NOT NULL,
   capacidad   INT NOT NULL DEFAULT 4,
   estado      VARCHAR(20) NOT NULL DEFAULT 'disponible',
-  codigo_qr   VARCHAR(255) DEFAULT NULL,
+  codigo_qr   VARCHAR(32) DEFAULT NULL,
   PRIMARY KEY (id_mesa),
   UNIQUE KEY uq_mesas_numero (numero_mesa),
   CONSTRAINT chk_mesas_estado CHECK (estado IN ('disponible','ocupada','reservada','inactiva')),
@@ -251,6 +251,10 @@ INSERT INTO mesas (numero_mesa, capacidad, estado) VALUES
   (9, 4, 'disponible'),  (10, 6, 'disponible'), (11, 2, 'disponible'), (12, 4, 'disponible'),
   (13, 4, 'disponible'), (14, 6, 'disponible'), (15, 4, 'disponible'), (16, 8, 'inactiva'),
   (17, 4, 'disponible'), (18, 4, 'disponible'), (19, 2, 'disponible'), (20, 6, 'disponible');
+
+-- Código secreto de cada mesa: va dentro de su QR (menu.html?mesa=N&c=código)
+-- y evita que alguien pida a nombre de otra mesa cambiando el número.
+UPDATE mesas SET codigo_qr = LOWER(SUBSTRING(MD5(CONCAT(RAND(), id_mesa, NOW(6))), 1, 10));
 
 INSERT INTO cupones (codigo, descuento, fecha_fin) VALUES
   ('BIENVENIDO', 10.00, NULL),

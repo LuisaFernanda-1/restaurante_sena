@@ -181,6 +181,22 @@ class Migrador:
 
     def mesas(self):
         self.reemplazar_check("mesas", "chk_mesas_numero", "numero_mesa BETWEEN 1 AND 999", "999")
+        # Los códigos antiguos ("QR-MESA-001") eran predecibles: se reemplazan
+        # por códigos aleatorios. Hay que imprimir de nuevo los QR.
+        sin_codigo = self.sql("SELECT id_mesa FROM mesas WHERE codigo_qr IS NULL "
+                              "OR codigo_qr NOT REGEXP '^[0-9a-f]{10}$'")
+        if sin_codigo:
+            print(f"  - mesas: generar código secreto del QR para {len(sin_codigo)} mesas "
+                  "(imprima de nuevo los QR)")
+            for m in sin_codigo:
+                self.sql("UPDATE mesas SET codigo_qr = %s WHERE id_mesa = %s", (secrets.token_hex(5), m["id_mesa"]))
+            self.conn.commit()
+            self.cambios += 1
+        info = self.columna("mesas", "codigo_qr")
+        if info and self.sql("SELECT CHARACTER_MAXIMUM_LENGTH AS n FROM information_schema.COLUMNS "
+                             "WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'mesas' "
+                             "AND COLUMN_NAME = 'codigo_qr'")[0]["n"] != 32:
+            self.paso("mesas: codigo_qr VARCHAR(32)", "ALTER TABLE mesas MODIFY codigo_qr VARCHAR(32) DEFAULT NULL")
 
     def pedidos(self):
         self.agregar_columna("pedidos", "id_cupon", "INT DEFAULT NULL AFTER id_usuario")

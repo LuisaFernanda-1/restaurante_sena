@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title>Mi Pedido | Restaurante SENA</title>
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
   <style>
     * {
       margin: 0;
@@ -402,6 +402,18 @@
         font-size: 0.8rem;
       }
     }
+    .status-pill[data-status="cancelado"] { background: #fff3f3; color: #c0392b; border-color: #f5c0c0; }
+    .aviso-cancelado {
+      background: #fff3f3; border: 1px solid #f5c0c0; color: #8a2a1f;
+      border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-size: .9rem;
+    }
+    .actualizado { font-size: .75rem; color: var(--tm); text-align: right; margin: -.6rem 0 1rem; }
+    .actualizado.sin-conexion { color: #c0392b; }
+    .otros-pedidos { margin-top: 1.5rem; font-size: .85rem; color: var(--tm); }
+    .otros-pedidos a { color: var(--g); font-weight: 600; margin-right: .8rem; text-decoration: none; }
+    .otros-pedidos a:hover { text-decoration: underline; }
+    .total-row.descuento span:last-child { color: var(--g); font-weight: 600; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -412,27 +424,26 @@
       <div class="logo-icon">🍽️</div>
       <span class="logo-text">Restaurante <strong>SENA</strong></span>
     </a>
-    <a href="menu.html" class="btn btn-ghost" style="padding: 0.6rem 1.2rem;">
+    <a href="menu.html" class="btn btn-ghost enlace-menu" style="padding: 0.6rem 1.2rem;">
       <i class="ti ti-plus"></i> Agregar más
     </a>
   </div>
 </nav>
 
 <main class="main-container">
-  <!-- Estado: sin pedido -->
-  <div id="noOrder" style="display: none;">
+  <!-- Sin pedido -->
+  <div id="noOrder" hidden>
     <div class="empty-state">
       <div class="empty-icon">🤔</div>
-      <h2 style="margin-bottom: 0.5rem;">No hay pedido activo</h2>
-      <p style="color: var(--tm); margin-bottom: 1.5rem;">No encontramos un pedido en curso para tu mesa</p>
-      <a href="menu.html" class="btn btn-primary">
+      <h2 style="margin-bottom: 0.5rem;" id="noOrderTitulo">No hay pedido activo</h2>
+      <p style="color: var(--tm); margin-bottom: 1.5rem;" id="noOrderTexto">No encontramos un pedido en curso en este dispositivo.</p>
+      <a href="menu.html" class="btn btn-primary enlace-menu">
         <i class="ti ti-book"></i> Ver Menú
       </a>
     </div>
   </div>
 
-  <div id="orderView">
-    <!-- Tarjeta superior con número y estado -->
+  <div id="orderView" hidden>
     <div class="status-header">
       <div class="order-info">
         <h4><i class="ti ti-receipt"></i> Número de orden</h4>
@@ -442,14 +453,18 @@
           <span id="orderMeta">Mesa # —</span>
         </div>
       </div>
-      <div class="status-pill" id="statusPill">
-        <i class="ti ti-info-circle"></i>
+      <div class="status-pill" id="statusPill" role="status" aria-live="polite">
+        <i class="ti ti-info-circle" id="statusIcon"></i>
         <span id="statusText">—</span>
       </div>
     </div>
+    <div class="actualizado" id="actualizado"></div>
 
-    <!-- Timeline moderno -->
-    <div class="timeline-modern">
+    <div class="aviso-cancelado" id="avisoCancelado" hidden>
+      <strong>Tu pedido fue cancelado.</strong> Si tienes dudas, pulsa «Llamar mesero» y con gusto te ayudamos.
+    </div>
+
+    <div class="timeline-modern" id="timeline">
       <div class="step" id="step-pendiente">
         <div class="step-icon">📋</div>
         <div class="step-content">
@@ -457,7 +472,7 @@
           <div class="step-desc">Tu orden ha sido registrada correctamente</div>
         </div>
       </div>
-      <div class="step" id="step-preparacion">
+      <div class="step" id="step-en_preparacion">
         <div class="step-icon">🔥</div>
         <div class="step-content">
           <div class="step-title">En Preparación</div>
@@ -480,7 +495,6 @@
       </div>
     </div>
 
-    <!-- Detalle del pedido -->
     <div class="order-details">
       <div class="section-title">
         <i class="ti ti-shopping-cart"></i> Detalle del pedido
@@ -493,149 +507,138 @@
       </table>
       <div class="totals">
         <div class="total-row"><span>Subtotal</span><span id="trackSubtotal">—</span></div>
-        <div class="total-row"><span>Servicio (10%)</span><span id="trackServicio">—</span></div>
-        <div class="total-row"><span>IVA (19%)</span><span id="trackIva">—</span></div>
+        <div class="total-row descuento" id="filaDescuento" hidden><span id="trackDescuentoTxt">Descuento</span><span id="trackDescuento">—</span></div>
+        <div class="total-row"><span id="trackImpuestoTxt">Impoconsumo</span><span id="trackImpuesto">—</span></div>
+        <div class="total-row" id="filaPropina"><span>Propina voluntaria</span><span id="trackPropina">—</span></div>
         <div class="total-grand"><span>Total</span><span id="trackTotal">—</span></div>
       </div>
+      <p id="trackNotas" style="margin-top:1rem;font-size:.85rem;color:var(--tm)" hidden></p>
     </div>
 
-    <!-- Botones de acción -->
     <div class="action-buttons">
       <button onclick="llamarMesero()" class="btn btn-secondary">
         <i class="ti ti-bell-ringing"></i> Llamar Mesero
       </button>
-      <a href="factura.html" class="btn btn-secondary">
+      <a href="factura.html" id="enlaceFactura" class="btn btn-secondary">
         <i class="ti ti-receipt"></i> Ver Factura
       </a>
-      <a href="menu.html" class="btn btn-primary">
+      <a href="menu.html" class="btn btn-primary enlace-menu">
         <i class="ti ti-plus"></i> Agregar más
       </a>
     </div>
+
+    <div class="otros-pedidos" id="otrosPedidos" hidden></div>
   </div>
 </main>
 
 <script src="js/main.js"></script>
 <script src="js/api.js"></script>
+<script src="js/cliente.js"></script>
 <script>
-  // ============================================================
-  // LÓGICA DEL PEDIDO (NO TOCADA, SOLO MEJORÉ LA VISUALIZACIÓN)
-  // ============================================================
+  const PASOS = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
+  const INTERVALO_MS = 10000;
+  let token = new URLSearchParams(location.search).get('t') || MisPedidos.ultimo()?.token;
+  let temporizador = null;
+  let cfg = { impuesto_nombre: 'Impoconsumo', impuesto_pct: 8, propina_pct: 10 };
 
-  const raw = JSP.session.get('lastOrder');
-  const pedido = raw ? JSON.parse(raw) : null;
+  document.querySelectorAll('.enlace-menu').forEach(a => a.href = Mesa.urlMenu());
 
-  if (!pedido) {
-    document.getElementById('noOrder').style.display = 'block';
-    document.getElementById('orderView').style.display = 'none';
-  } else {
-    // Mostrar datos básicos
-    document.getElementById('orderNum').textContent = pedido.numero || `#${pedido.id || '0001'}`;
-    document.getElementById('orderMeta').textContent = `Mesa #${pedido.mesa || '?'} · ${formatFecha(pedido.fecha)}`;
-
-    // Función para obtener estado actual (misma que tenías)
-    function getEstado() {
-      const pedidos = getPedidos();
-      const p = pedidos.find(p => p.id === pedido.id);
-      return p ? p.estado : (pedido.estado || 'pendiente');
-    }
-
-    // Actualizar UI según el estado (versión mejorada visualmente)
-    function actualizarUI(estado) {
-      // Mapeo de estados a texto e ícono
-      const estadoInfo = {
-        'pendiente': { texto: '⏳ Pendiente', icono: 'ti-timer' },
-        'en_preparacion': { texto: '🔥 En Preparación', icono: 'ti-chef-hat' },
-        'listo': { texto: '✅ Listo para servir', icono: 'ti-circle-check' },
-        'entregado': { texto: '✓ Entregado', icono: 'ti-hand-click' }
-      };
-      
-      // Actualizar pill de estado
-      const info = estadoInfo[estado] || estadoInfo['pendiente'];
-      const pill = document.getElementById('statusPill');
-      const statusSpan = document.getElementById('statusText');
-      pill.setAttribute('data-status', estado);
-      statusSpan.innerHTML = `<i class="${info.icono}" style="font-size:14px;"></i> ${info.texto}`;
-      
-      // Actualizar pasos del timeline
-      const steps = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
-      const currentIdx = steps.indexOf(estado);
-      
-      steps.forEach((step, idx) => {
-        let stepId = '';
-        if (step === 'pendiente') stepId = 'step-pendiente';
-        if (step === 'en_preparacion') stepId = 'step-preparacion';
-        if (step === 'listo') stepId = 'step-listo';
-        if (step === 'entregado') stepId = 'step-entregado';
-        
-        const stepEl = document.getElementById(stepId);
-        if (!stepEl) return;
-        
-        stepEl.classList.remove('completed', 'active');
-        if (idx < currentIdx) stepEl.classList.add('completed');
-        else if (idx === currentIdx) stepEl.classList.add('active');
-      });
-    }
-
-    // Renderizar tabla de productos
-    function renderDetail() {
-      const items = pedido.items || [];
-      const tbody = document.getElementById('orderDetailBody');
-      if (tbody) {
-        tbody.innerHTML = items.map(item => `
-          <tr>
-            <td>${item.emoji || '🍽️'} ${item.nombre}</td>
-            <td style="text-align: center;">${item.qty}</td>
-            <td style="text-align: right;">${formatCOP(item.precio * item.qty)}</td>
-          </tr>
-        `).join('');
-      }
-      document.getElementById('trackSubtotal').textContent = formatCOP(pedido.subtotal || 0);
-      document.getElementById('trackServicio').textContent = formatCOP(pedido.servicio || 0);
-      document.getElementById('trackIva').textContent = formatCOP(pedido.iva || 0);
-      document.getElementById('trackTotal').textContent = formatCOP(pedido.total || 0);
-    }
-
-    actualizarUI(getEstado());
-    renderDetail();
-
-    // Polling cada 3 segundos (igual que antes)
-    setInterval(() => {
-      actualizarUI(getEstado());
-    }, 3000);
+  function mostrarSinPedido(titulo, texto) {
+    document.getElementById('orderView').hidden = true;
+    document.getElementById('noOrder').hidden = false;
+    if (titulo) document.getElementById('noOrderTitulo').textContent = titulo;
+    if (texto) document.getElementById('noOrderTexto').textContent = texto;
   }
 
-  // Función para llamar al mesero
-  function llamarMesero() {
-    if (typeof showToast === 'function') {
-      showToast('🛎️ ¡Mesero notificado! Llegará a tu mesa en breve.', 'success');
+  function pintar(p) {
+    document.getElementById('noOrder').hidden = true;
+    document.getElementById('orderView').hidden = false;
+    document.getElementById('orderNum').textContent = p.numero_pedido;
+    document.getElementById('orderMeta').textContent = `Mesa #${p.numero_mesa} · ${formatFecha(p.fecha_pedido)}`;
+
+    const info = ESTADOS_PEDIDO[p.estado] || ESTADOS_PEDIDO.pendiente;
+    document.getElementById('statusPill').setAttribute('data-status', p.estado);
+    document.getElementById('statusIcon').className = `ti ${info.icono}`;
+    document.getElementById('statusText').textContent = info.texto;
+
+    const cancelado = p.estado === 'cancelado';
+    document.getElementById('avisoCancelado').hidden = !cancelado;
+    document.getElementById('timeline').hidden = cancelado;
+    const actual = PASOS.indexOf(p.estado);
+    PASOS.forEach((paso, i) => {
+      const el = document.getElementById(`step-${paso}`);
+      el.classList.toggle('completed', i < actual || p.estado === 'entregado');
+      el.classList.toggle('active', i === actual && p.estado !== 'entregado');
+    });
+
+    document.getElementById('orderDetailBody').innerHTML = p.items.map(i => `
+      <tr>
+        <td>${esc(i.emoji || '🍽️')} ${esc(i.nombre)}</td>
+        <td style="text-align: center;">${i.cantidad}</td>
+        <td style="text-align: right;">${formatCOP(i.subtotal)}</td>
+      </tr>`).join('');
+    document.getElementById('trackSubtotal').textContent = formatCOP(p.subtotal);
+    document.getElementById('filaDescuento').hidden = !p.descuento;
+    document.getElementById('trackDescuentoTxt').textContent = p.cupon ? `Descuento (${p.cupon})` : 'Descuento';
+    document.getElementById('trackDescuento').textContent = '− ' + formatCOP(p.descuento);
+    document.getElementById('trackImpuestoTxt').textContent = `${cfg.impuesto_nombre} (${pct(cfg.impuesto_pct)}%)`;
+    document.getElementById('trackImpuesto').textContent = formatCOP(p.impuesto);
+    document.getElementById('filaPropina').hidden = !p.propina;
+    document.getElementById('trackPropina').textContent = formatCOP(p.propina);
+    document.getElementById('trackTotal').textContent = formatCOP(p.total);
+    const notas = document.getElementById('trackNotas');
+    notas.hidden = !p.notas;
+    notas.textContent = p.notas ? `Notas: ${p.notas}` : '';
+
+    document.getElementById('enlaceFactura').href = `factura.html?t=${encodeURIComponent(token)}`;
+    document.getElementById('enlaceFactura').hidden = cancelado;
+
+    // Ya no cambiará: dejar de consultar
+    if (p.estado === 'entregado' || cancelado) detener();
+  }
+
+  function pintarOtros() {
+    const otros = MisPedidos.todos().filter(p => p.token !== token);
+    const cont = document.getElementById('otrosPedidos');
+    cont.hidden = !otros.length;
+    cont.innerHTML = otros.length
+      ? 'Tus otros pedidos de hoy: ' + otros.map(p =>
+          `<a href="pedido.html?t=${encodeURIComponent(p.token)}">${esc(p.numero)}</a>`).join('')
+      : '';
+  }
+
+  async function consultar() {
+    const r = await apiFetch(`/pedidos/token/${encodeURIComponent(token)}`);
+    const marca = document.getElementById('actualizado');
+    if (r.ok) {
+      pintar(r.data);
+      marca.classList.remove('sin-conexion');
+      marca.textContent = `Actualizado a las ${formatHora(new Date().toISOString())} · se actualiza solo cada 10 segundos`;
+    } else if (r.status === 404) {
+      detener();
+      mostrarSinPedido('Pedido no encontrado', 'El enlace no corresponde a un pedido. Si acabas de pedir, revisa con el mesero.');
     } else {
-      alert('🛎️ Mesero notificado');
+      marca.classList.add('sin-conexion');
+      marca.textContent = 'Sin conexión con el restaurante. Reintentando…';
     }
   }
 
-  // Helpers (por si no existen)
-  if (typeof formatFecha !== 'function') {
-    window.formatFecha = function(dateStr) {
-      if (!dateStr) return 'hoy';
-      try {
-        const d = new Date(dateStr);
-        return d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) + ' · ' + d.toLocaleDateString('es-CO');
-      } catch (e) {
-        return 'fecha reciente';
-      }
-    };
+  function detener() {
+    if (temporizador) clearInterval(temporizador);
+    temporizador = null;
   }
-  if (typeof formatCOP !== 'function') {
-    window.formatCOP = function(value) {
-      return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value || 0);
-    };
-  }
-  if (typeof getPedidos !== 'function') {
-    window.getPedidos = function() { return []; };
-  }
-  if (typeof JSP === 'undefined') {
-    window.JSP = { session: { get: (key) => localStorage.getItem(key) } };
-  }
+
+  (async () => {
+    if (!token || !/^[0-9a-f]{32}$/.test(token)) {
+      mostrarSinPedido();
+      return;
+    }
+    const rc = await apiFetch('/config');
+    if (rc.ok) cfg = rc.data;
+    pintarOtros();
+    await consultar();
+    temporizador = setInterval(consultar, INTERVALO_MS);
+  })();
 </script>
 </body>
 </html>

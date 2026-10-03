@@ -5,7 +5,7 @@ import hashlib
 import pytest
 
 import db
-from conftest import CLAVES_TEMPORALES
+from conftest import CLAVES_TEMPORALES, codigo_mesa
 
 # (método, ruta, cuerpo, roles que SÍ pueden)
 ADMIN, CHEF, MESERO = "admin", "chef", "mesero"
@@ -250,9 +250,9 @@ def test_proteccion_csrf_por_origen(admin):
 
 def test_limite_de_pedidos_por_dispositivo(cliente):
     for _ in range(20):
-        r = cliente.post("/api/pedidos", json={"mesa": 2, "items": [{"id": 12, "cantidad": 1}]})
+        r = cliente.post("/api/pedidos", json={"mesa": 2, "codigo": codigo_mesa(2), "items": [{"id": 12, "cantidad": 1}]})
         assert r.status_code == 201
-    r = cliente.post("/api/pedidos", json={"mesa": 2, "items": [{"id": 12, "cantidad": 1}]})
+    r = cliente.post("/api/pedidos", json={"mesa": 2, "codigo": codigo_mesa(2), "items": [{"id": 12, "cantidad": 1}]})
     assert r.status_code == 429
 
 
