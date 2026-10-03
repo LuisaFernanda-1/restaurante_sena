@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cocina | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    body { font-family: 'DM Sans', sans-serif; background: #f5f7f5; color: #0e1c12; margin: 0; }
+    .barra { display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;
+             background: #fff; border-bottom: 1px solid #c0d9c8; }
+    .barra h1 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin: 0; color: #006633; }
+    .barra button { background: none; border: 1px solid #c0d9c8; border-radius: 9px; padding: .5rem 1rem;
+                    cursor: pointer; font: inherit; }
+    .provisional { max-width: 560px; margin: 4rem auto; text-align: center; padding: 0 1rem; }
+    .provisional i { font-size: 3rem; color: #006633; }
+  </style>
+</head>
+<body>
+  <header class="barra">
+    <h1><i class="ti ti-chef-hat"></i> Cocina</h1>
+    <div><span id="usuarioNombre"></span> <button onclick="apiLogout()"><i class="ti ti-logout"></i> Salir</button></div>
+  </header>
+  <main class="provisional">
+    <i class="ti ti-chef-hat" aria-hidden="true"></i>
+    <h2>Vista en construcción</h2>
+    <p>Aquí verás los pedidos pendientes y en preparación.</p>
+  </main>
+  <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    requerirSesion(['Chef', 'Administrador']).then(u => {
+      document.getElementById('usuarioNombre').textContent = u.nombre;
+    });
+  </script>
+</body>
+</html>

@@ -155,40 +155,13 @@ function actualizarEstadoPedido(id, nuevoEstado) {
 }
 
 // ============================================================
-// AUTENTICACIÓN — Simula servlet de login
+// AUTENTICACIÓN
+// El inicio de sesión lo valida el servidor (ver js/api.js:
+// apiLogin, requerirSesion, apiLogout). Aquí no hay usuarios ni
+// contraseñas.
 // ============================================================
-const USERS = [
-  { usuario: 'admin', password: 'admin123', rol: 'Administrador', nombre: 'Admin SENA' },
-  { usuario: 'chef', password: 'chef123', rol: 'Chef', nombre: 'Chef Principal' },
-  { usuario: 'mesero', password: 'mesero123', rol: 'Mesero', nombre: 'Mesero 1' }
-];
-
-function doLogin(usuario, password) {
-  const user = USERS.find(u => u.usuario === usuario && u.password === password);
-  if (user) {
-    JSP.session.set('currentUser', JSON.stringify(user));
-    return { ok: true, user };
-  }
-  return { ok: false, msg: 'Credenciales incorrectas' };
-}
-
 function doLogout() {
-  JSP.session.remove('currentUser');
-  window.location.href = 'login.html';
-}
-
-function getUser() {
-  const raw = JSP.session.get('currentUser');
-  return raw ? JSON.parse(raw) : null;
-}
-
-function requireAuth() {
-  if (!getUser()) {
-    showToast('Debes iniciar sesión primero', 'error');
-    setTimeout(() => { window.location.href = 'login.html'; }, 1200);
-    return false;
-  }
-  return true;
+  apiLogout();
 }
 
 // ============================================================

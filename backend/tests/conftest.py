@@ -58,11 +58,28 @@ def borrar_bd(nombre_bd):
         conn.close()
 
 
+# Contraseñas SOLO para las pruebas: se asignan a los usuarios de la base
+# de pruebas (las temporales reales están únicamente en el README).
+CLAVES_TEMPORALES = {
+    "admin": "Prueba-Admin-111",
+    "chef": "Prueba-Cocina-222",
+    "mesero": "Prueba-Salon-333",
+}
+
+
 @pytest.fixture
 def bd():
     """Base de pruebas recién creada."""
+    import seguridad
+    from werkzeug.security import generate_password_hash
     db.reiniciar_pool()
     cargar_script(config.BACKEND_DIR / "restaurante_sena_completo.sql", NOMBRE_BD_PRUEBAS)
+    for usuario, clave in CLAVES_TEMPORALES.items():
+        # pbkdf2 con pocas iteraciones: solo para que las pruebas sean rápidas
+        db.ejecutar("UPDATE usuarios SET contrasena_hash = %s WHERE usuario = %s",
+                    (generate_password_hash(clave, method="pbkdf2:sha256:1000"), usuario))
+    seguridad.limitador_login.limpiar()
+    seguridad.limitador_pedidos.limpiar()
     yield
     db.reiniciar_pool()
 
@@ -77,6 +94,26 @@ def app(bd):
 @pytest.fixture
 def cliente(app):
     return app.test_client()
+
+
+@pytest.fixture
+def como(app):
+    """
+    Devuelve un cliente con sesión iniciada como 'admin', 'chef' o 'mesero'
+    (ya con la contraseña temporal cambiada).
+    """
+    def _como(usuario):
+        db.ejecutar("UPDATE usuarios SET debe_cambiar_clave = 0 WHERE usuario = %s", (usuario,))
+        c = app.test_client()
+        r = c.post("/api/auth/login", json={"usuario": usuario, "password": CLAVES_TEMPORALES[usuario]})
+        assert r.status_code == 200, r.get_json()
+        return c
+    return _como
+
+
+@pytest.fixture
+def admin(como):
+    return como("admin")
 
 
 @pytest.fixture

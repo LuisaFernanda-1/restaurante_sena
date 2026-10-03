@@ -758,12 +758,12 @@
   // ============================================================
   // VERIFICACIÓN DE AUTENTICACIÓN
   // ============================================================
-  requireAuth();
-
-  const user = getUser();
-  if (user) {
-    document.getElementById('userBadge').innerHTML = `<i class="ti ti-user"></i> ${user.nombre} · ${user.rol}`;
-  }
+  // El servidor valida la sesión; solo el Administrador entra aquí.
+  const sesionLista = requerirSesion(['Administrador']).then(user => {
+    document.getElementById('userBadge').innerHTML =
+      `<i class="ti ti-user"></i> ${esc(user.nombre)} · ${esc(user.rol)}`;
+    return user;
+  });
   document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-CO', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
@@ -1160,9 +1160,9 @@
   }
 
   // ============================================================
-  // INICIALIZACIÓN
+  // INICIALIZACIÓN (después de validar la sesión)
   // ============================================================
-  renderDashboard();
+  sesionLista.then(() => renderDashboard());
 
   // Cerrar modales con ESC
   document.addEventListener('keydown', (e) => {

@@ -2,8 +2,7 @@
  * api.js — Conector del frontend con el backend Flask
  * GA7-220501096-AA2-EV02 — Restaurante SENA
  *
- * Reemplaza las llamadas a localStorage por fetch() al API Flask.
- * Cada función simula un método GET o POST hacia un Servlet.
+ * Todas las páginas hablan con el servidor por aquí (fetch a /api/...).
  */
 
 // Rutas relativas: el mismo servidor Flask entrega las páginas y la API,
@@ -12,20 +11,36 @@ const API_BASE = "/api";
 
 // ============================================================
 // HELPER GENÉRICO
+// Devuelve siempre { ok, status, data } y data.msg con un mensaje claro.
 // ============================================================
 async function apiFetch(path, options = {}) {
+  let res;
   try {
-    const res = await fetch(API_BASE + path, {
+    res = await fetch(API_BASE + path, {
       headers: { "Content-Type": "application/json" },
-      credentials: "include",   // Mantiene sesión (cookie)
+      credentials: "same-origin",   // envía la cookie de sesión
       ...options
     });
-    const data = await res.json();
-    return { ok: res.ok, status: res.status, data };
   } catch (e) {
     console.error("[API ERROR]", e);
-    return { ok: false, status: 0, data: { msg: "Sin conexión al servidor" } };
+    return { ok: false, status: 0, data: { ok: false, msg: "Sin conexión con el servidor. Revise la red Wi-Fi." } };
   }
+  let data;
+  try {
+    data = await res.json();
+  } catch (e) {
+    data = { ok: false, msg: `Respuesta inesperada del servidor (${res.status}).` };
+  }
+  return { ok: res.ok, status: res.status, data };
+}
+
+// ============================================================
+// ESCAPAR TEXTO para insertarlo en HTML (evita inyección de código)
+// ============================================================
+function esc(valor) {
+  return String(valor ?? "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
 // ============================================================
@@ -46,10 +61,10 @@ async function checkAPIStatus() {
 // ============================================================
 // AUTH
 // ============================================================
-async function apiLogin(usuario, password) {
+async function apiLogin(usuario, password, recordar = false) {
   return apiFetch("/auth/login", {
     method: "POST",
-    body: JSON.stringify({ usuario, password })
+    body: JSON.stringify({ usuario, password, recordar })
   });
 }
 
@@ -60,6 +75,49 @@ async function apiLogout() {
 
 async function apiGetMe() {
   return apiFetch("/auth/me");
+}
+
+async function apiCambiarClave(actual, nueva) {
+  return apiFetch("/auth/cambiar-clave", {
+    method: "POST",
+    body: JSON.stringify({ actual, nueva })
+  });
+}
+
+// Página de inicio de cada rol
+const PAGINA_POR_ROL = {
+  "Administrador": "admin.html",
+  "Chef": "cocina.html",
+  "Mesero": "mesero.html"
+};
+
+function paginaDeRol(rol) {
+  return PAGINA_POR_ROL[rol] || "login.html";
+}
+
+/**
+ * Protege una página del personal. Úsela al cargar la página:
+ *     const user = await requerirSesion(["Administrador"]);
+ * - Sin sesión → login.html
+ * - Contraseña temporal sin cambiar → login.html (formulario de cambio)
+ * - Rol sin permiso → la página de su rol
+ */
+async function requerirSesion(rolesPermitidos) {
+  const r = await apiGetMe();
+  if (!r.ok) {
+    window.location.replace("login.html");
+    return new Promise(() => {});   // detiene la carga de la página
+  }
+  const user = r.data.user;
+  if (user.debe_cambiar_clave) {
+    window.location.replace("login.html?cambiar=1");
+    return new Promise(() => {});
+  }
+  if (rolesPermitidos && !rolesPermitidos.includes(user.rol)) {
+    window.location.replace(paginaDeRol(user.rol));
+    return new Promise(() => {});
+  }
+  return user;
 }
 
 // ============================================================

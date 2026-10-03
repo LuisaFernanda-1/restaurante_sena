@@ -259,28 +259,19 @@
       text-transform: uppercase; letter-spacing: .05em;
     }
 
-    /* credenciales de prueba */
-    .creds { display: flex; flex-direction: column; gap: 7px; }
-    .cred {
-      display: flex; align-items: center;
-      justify-content: space-between;
-      padding: 9px 12px;
+    /* aviso de cambio de contraseña */
+    .aviso {
       background: var(--gl);
       border: 1px solid var(--bd);
       border-radius: var(--rs);
-      cursor: pointer;
-      font-size: 13px; color: var(--tx);
-      transition: border-color .15s, background .15s;
+      padding: 10px 14px;
+      font-size: 13px; color: var(--tm);
+      margin-bottom: 16px;
+      line-height: 1.5;
     }
-    .cred:hover { border-color: var(--g); background: #d4ebe0; }
-    .cred strong { color: var(--gd); }
-    .cred .pill {
-      font-size: 11px; color: var(--gd);
-      background: rgba(0,102,51,.13);
-      padding: 3px 10px; border-radius: 20px; font-weight: 600;
-      white-space: nowrap;
-    }
-    .cred-icon { font-size: 14px; vertical-align: -2px; margin-right: 5px; }
+    .aviso strong { color: var(--gd); }
+    .btn-in:disabled { opacity: .6; cursor: wait; }
+    [hidden] { display: none !important; }
 
     /* volver */
     .back { text-align: center; margin-top: 1.1rem; }
@@ -328,14 +319,9 @@
       .panel-left h1 { font-size: 20px; }
       .panel-right { padding: 1.6rem 1.4rem 1.6rem; }
       .form-head h2 { font-size: 19px; }
-      .cred .pill { display: none; }
     }
   </style>
 </head>
-
-<script src="js/main.js"></script>
-<script src="js/api.js"></script>
-
 <body>
 <div class="page">
   <div class="card">
@@ -362,80 +348,105 @@
 
     <!-- ══ PANEL DERECHO ══ -->
     <div class="panel-right">
-      <div class="form-head">
-        <h2>Iniciar sesión</h2>
-        <p>Ingresa tus credenciales para acceder al panel</p>
-      </div>
 
-      <!-- Formulario POST — Servlet de autenticación (criterio 1 y 2) -->
-      <form id="loginForm" method="POST" action="admin.html" onsubmit="return handleLogin(event)">
-        <input type="hidden" name="action" value="login">
+      <!-- ── INGRESO ── -->
+      <section id="vistaLogin">
+        <div class="form-head">
+          <h2>Iniciar sesión</h2>
+          <p>Ingresa tus credenciales para acceder al panel</p>
+        </div>
 
-        <div class="fg">
-          <label for="usuario">Usuario</label>
-          <div class="fi-wrap">
-            <i class="ti ti-user icon-pre" aria-hidden="true"></i>
-            <input type="text" id="usuario" name="usuario" class="fi"
-              placeholder="Ingresa tu usuario" required autocomplete="username">
+        <form id="loginForm" method="POST" onsubmit="return handleLogin(event)" novalidate>
+          <div class="fg">
+            <label for="usuario">Usuario</label>
+            <div class="fi-wrap">
+              <i class="ti ti-user icon-pre" aria-hidden="true"></i>
+              <input type="text" id="usuario" name="usuario" class="fi"
+                placeholder="Ingresa tu usuario" required autocomplete="username"
+                autocapitalize="none" spellcheck="false">
+            </div>
           </div>
-        </div>
 
-        <div class="fg">
-          <label for="password">Contraseña</label>
-          <div class="fi-wrap">
-            <i class="ti ti-lock icon-pre" aria-hidden="true"></i>
-            <input type="password" id="password" name="password" class="fi"
-              placeholder="••••••••" required autocomplete="current-password">
-            <button type="button" class="eye-btn" onclick="togglePass()" aria-label="Mostrar contraseña">
-              <i class="ti ti-eye" id="eyeIcon" aria-hidden="true"></i>
-            </button>
+          <div class="fg">
+            <label for="password">Contraseña</label>
+            <div class="fi-wrap">
+              <i class="ti ti-lock icon-pre" aria-hidden="true"></i>
+              <input type="password" id="password" name="password" class="fi"
+                placeholder="••••••••" required autocomplete="current-password">
+              <button type="button" class="eye-btn" onclick="togglePass('password', this)" aria-label="Mostrar contraseña">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+            </div>
           </div>
+
+          <div class="row-check">
+            <input type="checkbox" id="remember" name="remember">
+            <label for="remember">Recordar sesión en este equipo (7 días)</label>
+          </div>
+
+          <div id="errorMsg" class="err" role="alert"></div>
+
+          <button type="submit" class="btn-in" id="btnLogin">
+            <i class="ti ti-login-2" aria-hidden="true"></i>
+            Ingresar al Sistema
+          </button>
+        </form>
+      </section>
+
+      <!-- ── CAMBIO DE CONTRASEÑA (obligatorio en el primer ingreso) ── -->
+      <section id="vistaCambio" hidden>
+        <div class="form-head">
+          <h2>Cambia tu contraseña</h2>
+          <p id="cambioSaludo">Por seguridad, define una contraseña personal.</p>
         </div>
 
-        <div class="row-check">
-          <input type="checkbox" id="remember" name="remember">
-          <label for="remember">Recordar sesión</label>
+        <div class="aviso">
+          Estás usando una <strong>contraseña temporal</strong>. La nueva debe tener
+          <strong>al menos 8 caracteres</strong>, con <strong>letras y números</strong>,
+          y no puede contener tu nombre de usuario.
         </div>
 
-        <div id="errorMsg" class="err"></div>
+        <form id="cambioForm" method="POST" onsubmit="return handleCambio(event)" novalidate>
+          <div class="fg">
+            <label for="claveActual">Contraseña actual (temporal)</label>
+            <div class="fi-wrap">
+              <i class="ti ti-lock icon-pre" aria-hidden="true"></i>
+              <input type="password" id="claveActual" class="fi" required autocomplete="current-password">
+            </div>
+          </div>
+          <div class="fg">
+            <label for="claveNueva">Nueva contraseña</label>
+            <div class="fi-wrap">
+              <i class="ti ti-key icon-pre" aria-hidden="true"></i>
+              <input type="password" id="claveNueva" class="fi" required minlength="8" autocomplete="new-password">
+              <button type="button" class="eye-btn" onclick="togglePass('claveNueva', this)" aria-label="Mostrar contraseña">
+                <i class="ti ti-eye" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+          <div class="fg">
+            <label for="claveConfirma">Repite la nueva contraseña</label>
+            <div class="fi-wrap">
+              <i class="ti ti-key icon-pre" aria-hidden="true"></i>
+              <input type="password" id="claveConfirma" class="fi" required minlength="8" autocomplete="new-password">
+            </div>
+          </div>
 
-        <button type="submit" class="btn-in">
-          <i class="ti ti-login-2" aria-hidden="true"></i>
-          Ingresar al Sistema
-        </button>
-      </form>
+          <div id="errorCambio" class="err" role="alert"></div>
 
-      <div class="divider">
-        <hr>
-        <span>Credenciales de prueba</span>
-        <hr>
-      </div>
-
-      <div class="creds">
-        <div class="cred" onclick="fillCreds('admin','admin123')">
-          <span>
-            <i class="ti ti-crown cred-icon" aria-hidden="true" style="color:var(--yd)"></i>
-            <strong>admin</strong> / admin123
-          </span>
-          <span class="pill">Administrador</span>
+          <button type="submit" class="btn-in" id="btnCambio">
+            <i class="ti ti-device-floppy" aria-hidden="true"></i>
+            Guardar y continuar
+          </button>
+        </form>
+        <div class="back">
+          <a href="#" onclick="apiLogout(); return false;">
+            <i class="ti ti-logout" aria-hidden="true"></i> Cerrar sesión
+          </a>
         </div>
-        <div class="cred" onclick="fillCreds('chef','chef123')">
-          <span>
-            <i class="ti ti-chef-hat cred-icon" aria-hidden="true" style="color:var(--g)"></i>
-            <strong>chef</strong> / chef123
-          </span>
-          <span class="pill">Cocina</span>
-        </div>
-        <div class="cred" onclick="fillCreds('mesero','mesero123')">
-          <span>
-            <i class="ti ti-bell cred-icon" aria-hidden="true" style="color:var(--g)"></i>
-            <strong>mesero</strong> / mesero123
-          </span>
-          <span class="pill">Servicio</span>
-        </div>
-      </div>
+      </section>
 
-      <div class="back">
+      <div class="back" id="volverInicio">
         <a href="index.html">
           <i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al inicio
         </a>
@@ -446,44 +457,104 @@
 </div>
 
 <script src="js/main.js"></script>
+<script src="js/api.js"></script>
 <script>
-  function handleLogin(e) {
+  function mostrarError(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = msg ? 'block' : 'none';
+  }
+
+  function ocupado(idBoton, si) {
+    document.getElementById(idBoton).disabled = si;
+  }
+
+  function mostrarCambio(user) {
+    document.getElementById('vistaLogin').hidden = true;
+    document.getElementById('volverInicio').hidden = true;
+    document.getElementById('vistaCambio').hidden = false;
+    if (user) document.getElementById('cambioSaludo').textContent =
+      `Hola, ${user.nombre}. Por seguridad, define una contraseña personal.`;
+    document.getElementById('claveActual').focus();
+  }
+
+  function entrar(user) {
+    showToast(`Bienvenido, ${esc(user.nombre)}`, 'success');
+    setTimeout(() => { window.location.href = paginaDeRol(user.rol); }, 600);
+  }
+
+  async function handleLogin(e) {
     e.preventDefault();
     const usuario = document.getElementById('usuario').value.trim();
     const password = document.getElementById('password').value;
-    const result = doLogin(usuario, password);
-    if (result.ok) {
-      showToast(`✓ Bienvenido, ${result.user.nombre}`, 'success');
-      setTimeout(() => { window.location.href = 'admin.html'; }, 800);
-    } else {
-      const err = document.getElementById('errorMsg');
-      err.style.display = 'block';
-      err.textContent = '❌ ' + result.msg;
+    const recordar = document.getElementById('remember').checked;
+    if (!usuario || !password) {
+      mostrarError('errorMsg', 'Escribe tu usuario y tu contraseña.');
+      return false;
+    }
+    mostrarError('errorMsg', '');
+    ocupado('btnLogin', true);
+    const r = await apiLogin(usuario, password, recordar);
+    ocupado('btnLogin', false);
+    if (!r.ok) {
+      mostrarError('errorMsg', r.data.msg || 'No se pudo iniciar sesión.');
       document.getElementById('password').value = '';
+      document.getElementById('password').focus();
+      return false;
+    }
+    const user = r.data.user;
+    if (user.debe_cambiar_clave) {
+      document.getElementById('claveActual').value = password;
+      mostrarCambio(user);
+      document.getElementById('claveNueva').focus();
+    } else {
+      entrar(user);
     }
     return false;
   }
 
-  function togglePass() {
-    const inp = document.getElementById('password');
-    const ic  = document.getElementById('eyeIcon');
-    if (inp.type === 'password') {
-      inp.type = 'text';
-      ic.className = 'ti ti-eye-off';
-    } else {
-      inp.type = 'password';
-      ic.className = 'ti ti-eye';
+  async function handleCambio(e) {
+    e.preventDefault();
+    const actual = document.getElementById('claveActual').value;
+    const nueva = document.getElementById('claveNueva').value;
+    const confirma = document.getElementById('claveConfirma').value;
+    if (nueva !== confirma) {
+      mostrarError('errorCambio', 'Las dos contraseñas nuevas no coinciden.');
+      return false;
     }
+    mostrarError('errorCambio', '');
+    ocupado('btnCambio', true);
+    const r = await apiCambiarClave(actual, nueva);
+    ocupado('btnCambio', false);
+    if (!r.ok) {
+      if (r.status === 401) { window.location.replace('login.html'); return false; }
+      mostrarError('errorCambio', r.data.msg || 'No se pudo cambiar la contraseña.');
+      return false;
+    }
+    showToast('Contraseña actualizada', 'success');
+    entrar(r.data.user);
+    return false;
   }
 
-  function fillCreds(u, p) {
-    document.getElementById('usuario').value = u;
-    document.getElementById('password').value = p;
-    document.getElementById('errorMsg').style.display = 'none';
+  function togglePass(idCampo, boton) {
+    const inp = document.getElementById(idCampo);
+    const ic = boton.querySelector('i');
+    const ver = inp.type === 'password';
+    inp.type = ver ? 'text' : 'password';
+    ic.className = ver ? 'ti ti-eye-off' : 'ti ti-eye';
   }
 
-  // Si ya hay sesión activa, redirigir directo
-  if (getUser()) window.location.href = 'admin.html';
+  // Si ya hay una sesión activa, ir directo a la página del rol
+  // (o al cambio de contraseña si aún usa la temporal).
+  (async () => {
+    const r = await apiGetMe();
+    if (!r.ok) {
+      document.getElementById('usuario').focus();
+      return;
+    }
+    if (r.data.user.debe_cambiar_clave) mostrarCambio(r.data.user);
+    else window.location.replace(paginaDeRol(r.data.user.rol));
+  })();
 </script>
 </body>
 </html>

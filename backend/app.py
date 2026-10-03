@@ -11,18 +11,21 @@ Producción:   scripts/iniciar_servidor.ps1  (Waitress)
 import logging
 import re
 import secrets
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
+from urllib.parse import urlsplit
 
 from flask import Flask, abort, request, send_from_directory, session
 from flask.json.provider import DefaultJSONProvider
 from werkzeug.exceptions import HTTPException
-from werkzeug.security import check_password_hash
 
 import config
 import db
+import seguridad
 from db import DBDuplicado, DBError, DBReferencia
 from dinero import calcular_totales
+from errores import ErrorAPI
+from seguridad import ROL_ADMIN, ROL_CHEF, ROL_MESERO, requiere_rol, usuario_actual
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,6 +60,8 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=config.COOKIE_SEGURA,
+    SESSION_COOKIE_NAME="restaurante_sesion",
+    PERMANENT_SESSION_LIFETIME=timedelta(seconds=seguridad.DURACION_SESION_RECORDADA),
     MAX_CONTENT_LENGTH=1024 * 1024,  # 1 MB por petición es más que suficiente
 )
 
@@ -68,18 +73,12 @@ def jresp(data, status=200):
 # ============================================================
 # ERRORES
 # ============================================================
-class ErrorAPI(Exception):
-    """Error controlado que se devuelve al cliente con un mensaje claro."""
-
-    def __init__(self, msg, status=400):
-        super().__init__(msg)
-        self.msg = msg
-        self.status = status
-
-
 @app.errorhandler(ErrorAPI)
 def _error_api(e):
-    return jresp({"ok": False, "msg": e.msg}, e.status)
+    cuerpo = {"ok": False, "msg": e.msg}
+    if e.codigo:
+        cuerpo["codigo"] = e.codigo
+    return jresp(cuerpo, e.status)
 
 
 @app.errorhandler(DBDuplicado)
@@ -117,6 +116,32 @@ def _error_http(e):
 def _error_inesperado(e):
     log.exception("Error inesperado en %s %s", request.method, request.path)
     return jresp({"ok": False, "msg": "Error interno del servidor."}, 500)
+
+
+# ============================================================
+# PROTECCIONES GENERALES
+# ============================================================
+@app.before_request
+def _proteger_peticiones():
+    """
+    Protección CSRF: una página de OTRO sitio no puede enviar peticiones
+    que modifiquen datos usando la sesión del personal. Los navegadores
+    siempre envían la cabecera Origin en POST/PUT/DELETE entre sitios.
+    """
+    if request.method in ("POST", "PUT", "PATCH", "DELETE") and request.path.startswith("/api/"):
+        origen = request.headers.get("Origin")
+        if origen and urlsplit(origen).netloc != request.host:
+            raise ErrorAPI("Origen de la petición no permitido.", 403, "origen")
+
+
+@app.after_request
+def _cabeceras_seguridad(resp):
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "same-origin")
+    if request.path.startswith("/api/"):
+        resp.headers.setdefault("Cache-Control", "no-store")
+    return resp
 
 
 # ============================================================
@@ -202,6 +227,7 @@ def config_publica():
 # POST /api/auth/login    → inicia sesión con usuario/contraseña
 # POST /api/auth/logout   → cierra sesión
 # GET  /api/auth/me       → usuario de la sesión actual
+# POST /api/auth/cambiar-clave → cambia la contraseña propia
 # ============================================================
 @app.route("/api/auth/login", methods=["POST"])
 def login():
@@ -211,28 +237,36 @@ def login():
     if not usuario or not isinstance(password, str) or not password:
         raise ErrorAPI("Usuario y contraseña son obligatorios.")
 
+    clave_limite = f"{request.remote_addr}|{usuario}"
+    minutos = seguridad.limitador_login.bloqueado(clave_limite)
+    if minutos:
+        raise ErrorAPI(f"Demasiados intentos fallidos. Intente de nuevo en {minutos} minutos.", 429)
+
     row = db.consultar_uno(
         """SELECT u.id_usuario, u.nombre, u.usuario, u.contrasena_hash,
-                  u.debe_cambiar_clave, r.nombre_rol
+                  u.debe_cambiar_clave, r.nombre_rol AS rol
            FROM usuarios u JOIN roles r ON u.id_rol = r.id_rol
            WHERE (u.usuario = %s OR u.correo = %s) AND u.activo = 1""",
         (usuario, usuario),
     )
-    if not row or not check_password_hash(row["contrasena_hash"], password):
+    correcta, actualizar = seguridad.verificar_clave(row["contrasena_hash"] if row else None, password)
+    if not row or not correcta:
+        seguridad.limitador_login.fallo(clave_limite)
+        log.warning("Inicio de sesión fallido para '%s' desde %s", usuario, request.remote_addr)
         raise ErrorAPI("Usuario o contraseña incorrectos.", 401)
+    seguridad.limitador_login.limpiar(clave_limite)
+
+    if actualizar:
+        # Contraseña con el hash antiguo (SHA-256 sin sal): se reemplaza
+        # por un hash seguro ahora que conocemos la contraseña.
+        row["contrasena_hash"] = seguridad.crear_hash(password)
+        db.ejecutar("UPDATE usuarios SET contrasena_hash = %s WHERE id_usuario = %s",
+                    (row["contrasena_hash"], row["id_usuario"]))
+        log.info("Hash de contraseña actualizado al formato seguro para '%s'", row["usuario"])
 
     db.ejecutar("UPDATE usuarios SET ultimo_ingreso = NOW() WHERE id_usuario = %s", (row["id_usuario"],))
-    session.clear()
-    session["user_id"] = row["id_usuario"]
-    session["user_nombre"] = row["nombre"]
-    session["user_rol"] = row["nombre_rol"]
-    return jresp({"ok": True, "user": {
-        "id": row["id_usuario"],
-        "nombre": row["nombre"],
-        "usuario": row["usuario"],
-        "rol": row["nombre_rol"],
-        "debe_cambiar_clave": bool(row["debe_cambiar_clave"]),
-    }})
+    seguridad.iniciar_sesion(row, recordar=data.get("recordar") is True)
+    return jresp({"ok": True, "user": seguridad.datos_publicos(row)})
 
 
 @app.route("/api/auth/logout", methods=["POST"])
@@ -243,13 +277,34 @@ def logout():
 
 @app.route("/api/auth/me", methods=["GET"])
 def me():
-    if "user_id" not in session:
-        raise ErrorAPI("No autenticado.", 401)
-    return jresp({"ok": True, "user": {
-        "id": session["user_id"],
-        "nombre": session["user_nombre"],
-        "rol": session["user_rol"],
-    }})
+    u = usuario_actual()
+    if not u:
+        raise ErrorAPI("No autenticado.", 401, "sin_sesion")
+    return jresp({"ok": True, "user": seguridad.datos_publicos(u)})
+
+
+@app.route("/api/auth/cambiar-clave", methods=["POST"])
+@requiere_rol(permitir_cambio_pendiente=True)
+def cambiar_clave():
+    data = cuerpo_json()
+    actual = data.get("actual")
+    nueva = data.get("nueva")
+    u = usuario_actual()
+    correcta, _ = seguridad.verificar_clave(u["contrasena_hash"], actual if isinstance(actual, str) else "")
+    if not correcta:
+        raise ErrorAPI("La contraseña actual no es correcta.")
+    seguridad.validar_clave_nueva(nueva, u["usuario"])
+    if nueva == actual:
+        raise ErrorAPI("La nueva contraseña debe ser diferente a la actual.")
+    nuevo_hash = seguridad.crear_hash(nueva)
+    db.ejecutar("UPDATE usuarios SET contrasena_hash = %s, debe_cambiar_clave = 0 WHERE id_usuario = %s",
+                (nuevo_hash, u["id_usuario"]))
+    # Las demás sesiones de este usuario quedan cerradas (cambió la huella
+    # de la contraseña); esta se renueva para seguir trabajando.
+    u.update(contrasena_hash=nuevo_hash, debe_cambiar_clave=False)
+    seguridad.iniciar_sesion(u, recordar=session.permanent)
+    log.info("El usuario '%s' cambió su contraseña", u["usuario"])
+    return jresp({"ok": True, "msg": "Contraseña actualizada", "user": seguridad.datos_publicos(u)})
 
 
 # ============================================================
@@ -340,6 +395,7 @@ def _validar_producto(data, parcial=False):
 
 
 @app.route("/api/productos", methods=["POST"])
+@requiere_rol(ROL_ADMIN)
 def crear_producto():
     campos = _validar_producto(cuerpo_json())
     columnas = ", ".join(campos)
@@ -349,6 +405,7 @@ def crear_producto():
 
 
 @app.route("/api/productos/<int:pid>", methods=["PUT"])
+@requiere_rol(ROL_ADMIN)
 def editar_producto(pid):
     campos = _validar_producto(cuerpo_json(), parcial=True)
     if not campos:
@@ -366,6 +423,7 @@ def editar_producto(pid):
 
 
 @app.route("/api/productos/<int:pid>", methods=["DELETE"])
+@requiere_rol(ROL_ADMIN)
 def eliminar_producto(pid):
     # Borrado lógico: el producto sale de la carta pero se conserva en
     # los pedidos y reportes antiguos.
@@ -387,6 +445,7 @@ ESTADOS_MESA = ("disponible", "ocupada", "reservada", "inactiva")
 
 
 @app.route("/api/mesas", methods=["GET"])
+@requiere_rol()
 def get_mesas():
     estado = request.args.get("estado")
     sql = "SELECT id_mesa, numero_mesa, capacidad, estado FROM mesas"
@@ -412,6 +471,7 @@ def get_mesa(numero):
 
 
 @app.route("/api/mesas/<int:mid>/estado", methods=["PUT"])
+@requiere_rol(ROL_ADMIN, ROL_MESERO)
 def cambiar_estado_mesa(mid):
     estado = cuerpo_json().get("estado")
     if estado not in ESTADOS_MESA:
@@ -432,12 +492,14 @@ def cambiar_estado_mesa(mid):
 # ============================================================
 ESTADOS_PEDIDO = ("pendiente", "en_preparacion", "listo", "entregado", "cancelado")
 ESTADOS_ACTIVOS = ("pendiente", "en_preparacion", "listo")
+# (estado actual, estado nuevo) → roles que pueden hacer ese cambio
 TRANSICIONES = {
-    "pendiente": {"en_preparacion", "cancelado"},
-    "en_preparacion": {"listo", "cancelado"},
-    "listo": {"entregado", "cancelado"},
-    "entregado": set(),
-    "cancelado": set(),
+    ("pendiente", "en_preparacion"): {ROL_CHEF, ROL_ADMIN},
+    ("en_preparacion", "listo"): {ROL_CHEF, ROL_ADMIN},
+    ("listo", "entregado"): {ROL_MESERO, ROL_ADMIN},
+    ("pendiente", "cancelado"): {ROL_CHEF, ROL_ADMIN},
+    ("en_preparacion", "cancelado"): {ROL_CHEF, ROL_ADMIN},
+    ("listo", "cancelado"): {ROL_ADMIN},
 }
 MAX_ITEMS_PEDIDO = 30
 
@@ -468,6 +530,7 @@ def _items_de(ids_pedido):
 
 
 @app.route("/api/pedidos", methods=["GET"])
+@requiere_rol()
 def get_pedidos():
     limit = arg_entero("limit", 50, 1, 500)
     sql = f"""SELECT {COLUMNAS_PEDIDO}, COUNT(d.id_detalle) AS num_items
@@ -526,6 +589,7 @@ def _pedido_completo(where, valor):
 
 
 @app.route("/api/pedidos/<int:pid>", methods=["GET"])
+@requiere_rol()
 def get_pedido(pid):
     return jresp(_pedido_completo("p.id_pedido = %s", pid))
 
@@ -565,6 +629,9 @@ def crear_pedido():
              "notas": "...", "cupon": "BIENVENIDO", "propina": true}
     Los precios NO se reciben del cliente: se leen de la base de datos.
     """
+    if seguridad.limitador_pedidos.bloqueado(request.remote_addr):
+        raise ErrorAPI("Se han enviado demasiados pedidos desde este dispositivo. "
+                       "Espere unos minutos o pida ayuda al mesero.", 429)
     data = cuerpo_json()
     numero_mesa = v_entero(data.get("mesa"), "Mesa", 1)
     notas = v_texto(data.get("notas"), "Notas", 300) or None
@@ -644,6 +711,7 @@ def crear_pedido():
             (mesa["id_mesa"],),
         )
 
+    seguridad.limitador_pedidos.registrar(request.remote_addr)
     log.info("Pedido %s creado en mesa %s por %s", numero, numero_mesa, totales["total"])
     return jresp({
         "ok": True,
@@ -674,6 +742,7 @@ def _generar_factura(cur, pedido):
 
 
 @app.route("/api/pedidos/<int:pid>/estado", methods=["PUT"])
+@requiere_rol()
 def cambiar_estado_pedido(pid):
     nuevo = cuerpo_json().get("estado")
     if nuevo not in ESTADOS_PEDIDO:
@@ -694,8 +763,11 @@ def cambiar_estado_pedido(pid):
         actual = pedido["estado"]
         if nuevo == actual:
             return jresp({"ok": True, "msg": f"El pedido ya estaba en estado {nuevo}"})
-        if nuevo not in TRANSICIONES[actual]:
+        roles = TRANSICIONES.get((actual, nuevo))
+        if roles is None:
             raise ErrorAPI(f"No se puede pasar un pedido de '{actual}' a '{nuevo}'.", 409)
+        if usuario_actual()["rol"] not in roles:
+            raise ErrorAPI(f"Su rol no puede pasar un pedido de '{actual}' a '{nuevo}'.", 403, "sin_permiso")
 
         sql = "UPDATE pedidos SET estado = %s"
         if nuevo == "listo":
@@ -703,7 +775,7 @@ def cambiar_estado_pedido(pid):
         if nuevo == "entregado":
             sql += ", fecha_entrega = NOW(), id_usuario = %s"
         sql += " WHERE id_pedido = %s"
-        params = [nuevo] + ([session.get("user_id")] if nuevo == "entregado" else []) + [pid]
+        params = [nuevo] + ([usuario_actual()["id_usuario"]] if nuevo == "entregado" else []) + [pid]
         cur.execute(sql, params)
 
         if nuevo == "entregado":
@@ -725,26 +797,40 @@ def cambiar_estado_pedido(pid):
 
 # ============================================================
 # FACTURAS
-# GET /api/facturas/<id_pedido>
-# PUT /api/facturas/<id_pedido>/pago
+# GET /api/facturas/<id_pedido>       → personal
+# GET /api/facturas/token/<token>     → comensal (token secreto del pedido)
+# PUT /api/facturas/<id_pedido>/pago  → administrador o mesero
 # ============================================================
-@app.route("/api/facturas/<int:pid>", methods=["GET"])
-def get_factura(pid):
+def _factura(where, valor):
     fac = db.consultar_uno(
-        """SELECT f.*, p.numero_pedido, p.notas, p.estado, m.numero_mesa
-           FROM facturas f
-           JOIN pedidos p ON f.id_pedido = p.id_pedido
-           JOIN mesas m ON p.id_mesa = m.id_mesa
-           WHERE f.id_pedido = %s""",
-        (pid,),
+        f"""SELECT f.*, p.numero_pedido, p.notas, p.estado, m.numero_mesa
+            FROM facturas f
+            JOIN pedidos p ON f.id_pedido = p.id_pedido
+            JOIN mesas m ON p.id_mesa = m.id_mesa
+            WHERE {where}""",
+        (valor,),
     )
     if not fac:
         raise ErrorAPI("Factura no encontrada.", 404)
-    fac["items"] = _items_de([pid]).get(pid, [])
-    return jresp(fac)
+    fac["items"] = _items_de([fac["id_pedido"]]).get(fac["id_pedido"], [])
+    return fac
+
+
+@app.route("/api/facturas/<int:pid>", methods=["GET"])
+@requiere_rol()
+def get_factura(pid):
+    return jresp(_factura("f.id_pedido = %s", pid))
+
+
+@app.route("/api/facturas/token/<token>", methods=["GET"])
+def get_factura_token(token):
+    if not re.fullmatch(r"[0-9a-f]{32}", token):
+        raise ErrorAPI("Factura no encontrada.", 404)
+    return jresp(_factura("p.token = %s", token))
 
 
 @app.route("/api/facturas/<int:pid>/pago", methods=["PUT"])
+@requiere_rol(ROL_ADMIN, ROL_MESERO)
 def actualizar_metodo_pago(pid):
     metodo = cuerpo_json().get("metodo_pago")
     if metodo not in ("efectivo", "tarjeta", "digital"):
@@ -775,6 +861,7 @@ def validar_cupon():
 # Las ventas solo cuentan pedidos ENTREGADOS (facturados).
 # ============================================================
 @app.route("/api/stats", methods=["GET"])
+@requiere_rol(ROL_ADMIN)
 def get_stats():
     hoy = date.today()
     pedidos_hoy = db.consultar_uno(
