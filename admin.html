@@ -658,6 +658,7 @@
       <li><a href="#personal" data-seccion="personal"><i class="ti ti-users"></i> Personal</a></li>
       <li><a href="#cupones" data-seccion="cupones"><i class="ti ti-discount-2"></i> Cupones</a></li>
       <li><a href="#reportes" data-seccion="reportes"><i class="ti ti-chart-bar"></i> Reportes</a></li>
+      <li><a href="#respaldo" data-seccion="respaldo"><i class="ti ti-database-export"></i> Respaldo</a></li>
     </ul>
     <div class="sidebar-footer">
       <a href="menu.html" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center;">
@@ -795,6 +796,34 @@
     </section>
 
     <!-- ========== REPORTES ========== -->
+    <!-- ========== RESPALDO ========== -->
+    <section id="sec-respaldo" class="seccion" hidden>
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Respaldo</h1>
+          <p>Copia de seguridad de toda la información del restaurante</p>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-body">
+          <p style="margin-bottom:1rem">Descarga un archivo <strong>.sql.gz</strong> con la carta, las mesas, el personal,
+            los cupones, los pedidos y las facturas. Guárdalo fuera de este equipo (memoria USB, Google Drive u OneDrive)
+            al menos una vez por semana.</p>
+          <a id="btnRespaldo" class="btn btn-primary" href="api/respaldo" download>
+            <i class="ti ti-download"></i> Descargar respaldo
+          </a>
+          <h3 style="margin:1.6rem 0 .5rem;font-size:1rem">¿Cómo restaurar un respaldo?</h3>
+          <ol style="margin-left:1.2rem;line-height:1.8;font-size:.9rem;color:var(--tm)">
+            <li>Abre <strong>phpMyAdmin</strong> (en Hostinger: hPanel → Bases de datos → phpMyAdmin).</li>
+            <li>Selecciona la base de datos del restaurante en la columna izquierda.</li>
+            <li>Pestaña <strong>Importar</strong> → elige el archivo <strong>.sql.gz</strong> → <strong>Importar</strong>.</li>
+          </ol>
+          <p class="muted" style="margin-top:.6rem">Restaurar reemplaza toda la información actual por la del respaldo.
+            Las sesiones abiertas se cierran y el personal debe volver a ingresar.</p>
+        </div>
+      </div>
+    </section>
+
     <section id="sec-reportes" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">

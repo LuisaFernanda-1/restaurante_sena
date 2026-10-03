@@ -203,7 +203,8 @@ function formulario({ titulo, subtitulo, campos, valores = {}, textoGuardar = 'G
 // ============================================================
 const CARGAR = {
   dashboard: cargarDashboard, pedidos: cargarPedidos, carta: cargarCarta, categorias: cargarCategorias,
-  mesas: cargarMesas, personal: cargarPersonal, cupones: cargarCupones, reportes: cargarReportes
+  mesas: cargarMesas, personal: cargarPersonal, cupones: cargarCupones, reportes: cargarReportes,
+  respaldo: () => {}
 };
 
 function mostrarSeccion(nombre) {
@@ -797,7 +798,7 @@ async function cargarReportes() {
   // Mostrar el rango real (útil cuando se usan los valores por defecto)
   document.getElementById('repDesde').value = rep.desde;
   document.getElementById('repHasta').value = rep.hasta;
-  document.getElementById('repCsv').href = `/api/reportes/ventas.csv?${parametrosReporte()}`;
+  document.getElementById('repCsv').href = `api/reportes/ventas.csv?${parametrosReporte()}`;
 
   const res = rep.resumen;
   const tarjeta = (icono, num, etiqueta, destacada = false) => `

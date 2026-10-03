@@ -35,6 +35,17 @@ ruta('GET', '/config', function (): void {
 // CATEGORÍAS Y PRODUCTOS (carta)
 // ============================================================
 ruta('GET', '/categorias', function (): void {
+    if (arg('todas') === '1') {
+        // Panel: también las inactivas, con cuántos productos tiene cada una
+        exigir_rol([ROL_ADMIN]);
+        responder(consultar(
+            'SELECT c.id_categoria, c.nombre_categoria, c.descripcion, c.orden, c.activo,
+                    COUNT(p.id_producto) AS productos
+             FROM categorias c
+             LEFT JOIN productos p ON p.id_categoria = c.id_categoria AND p.activo = 1
+             GROUP BY c.id_categoria, c.nombre_categoria, c.descripcion, c.orden, c.activo
+             ORDER BY c.orden, c.nombre_categoria'));
+    }
     responder(consultar(
         'SELECT id_categoria, nombre_categoria, descripcion, orden, activo
          FROM categorias WHERE activo = 1 ORDER BY orden, nombre_categoria'));
@@ -46,7 +57,14 @@ const COLUMNAS_PRODUCTO = 'p.id_producto, p.id_categoria, p.nombre, p.descripcio
 ruta('GET', '/productos', function (): void {
     $sql = 'SELECT ' . COLUMNAS_PRODUCTO . '
             FROM productos p JOIN categorias c ON p.id_categoria = c.id_categoria
-            WHERE p.activo = 1 AND c.activo = 1';
+            WHERE p.activo = 1';
+    // La carta pública no muestra productos de categorías desactivadas; el
+    // administrador (?todas=1) los ve todos para poder gestionarlos.
+    if (arg('todas') === '1') {
+        exigir_rol([ROL_ADMIN]);
+    } else {
+        $sql .= ' AND c.activo = 1';
+    }
     $params = [];
     if (($cat = arg('cat')) !== null && $cat !== '') {
         $sql .= ' AND c.nombre_categoria = ?';

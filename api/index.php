@@ -85,6 +85,9 @@ require __DIR__ . '/rutas/publico.php';
 require __DIR__ . '/rutas/auth.php';
 require __DIR__ . '/rutas/mesas.php';
 require __DIR__ . '/rutas/pedidos.php';
+require __DIR__ . '/rutas/admin.php';
+require __DIR__ . '/rutas/reportes.php';
+require __DIR__ . '/rutas/respaldo.php';
 
 try {
     verificar_origen();

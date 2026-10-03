@@ -18,6 +18,7 @@ declare(strict_types=1);
 
 require __DIR__ . '/lib_pruebas.php';
 require dirname(__DIR__) . '/api/config.php';
+require dirname(__DIR__) . '/api/lib/respaldo.php';   // dividir_sql()
 
 date_default_timezone_set(cfg('ZONA_HORARIA'));
 
