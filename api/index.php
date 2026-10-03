@@ -14,6 +14,7 @@ require __DIR__ . '/lib/respuesta.php';
 require __DIR__ . '/lib/db.php';
 require __DIR__ . '/lib/validacion.php';
 require __DIR__ . '/lib/dinero.php';
+require __DIR__ . '/lib/seguridad.php';
 
 instalar_manejo_de_errores();
 date_default_timezone_set(cfg('ZONA_HORARIA'));
@@ -81,5 +82,13 @@ function ruta_actual(): string
 }
 
 require __DIR__ . '/rutas/publico.php';
+require __DIR__ . '/rutas/auth.php';
+require __DIR__ . '/rutas/mesas.php';
+
+try {
+    verificar_origen();
+} catch (ErrorAPI $e) {
+    responder_error($e->msg, $e->status, $e->codigo);
+}
 
 $enrutador->despachar($_SERVER['REQUEST_METHOD'] ?? 'GET', ruta_actual());

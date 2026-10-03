@@ -213,6 +213,16 @@ CREATE TABLE limites (
   KEY idx_limites_busqueda (tipo, clave, creado)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- SESIONES del personal. Se guardan en la base (no en archivos) para que
+-- el hosting compartido no las borre antes de tiempo.
+CREATE TABLE sesiones (
+  id_sesion   VARCHAR(128) NOT NULL,
+  datos       TEXT         NOT NULL,
+  actualizado DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id_sesion),
+  KEY idx_sesiones_actualizado (actualizado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- ============================================================
 -- 3. DATOS INICIALES
 -- ============================================================

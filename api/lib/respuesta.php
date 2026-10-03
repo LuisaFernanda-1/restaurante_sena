@@ -50,11 +50,16 @@ function cabeceras_api(): void
     header('Content-Type: application/json; charset=utf-8');
     header('Cache-Control: no-store');
     header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: same-origin');
 }
 
 /** Envía la respuesta JSON y termina. */
 function responder(mixed $datos, int $status = 200): never
 {
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_write_close();   // guarda la sesión en la base antes de responder
+    }
     http_response_code($status);
     cabeceras_api();
     echo json_encode(normalizar($datos), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
