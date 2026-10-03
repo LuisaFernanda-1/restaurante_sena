@@ -771,11 +771,151 @@ async function eliminarCupon(id) {
 }
 
 // ============================================================
-// REPORTES (la versión completa por día/semana/mes llega en la fase 7)
+// REPORTES (ventas por día, semana o mes)
 // ============================================================
+const NOMBRE_PERIODO = { dia: 'día', semana: 'semana', mes: 'mes' };
+let periodoReporte = 'dia';
+
+function parametrosReporte() {
+  const p = new URLSearchParams({ periodo: periodoReporte });
+  const desde = document.getElementById('repDesde').value;
+  const hasta = document.getElementById('repHasta').value;
+  if (desde) p.set('desde', desde);
+  if (hasta) p.set('hasta', hasta);
+  return p;
+}
+
 async function cargarReportes() {
-  const r = await api('/stats');
-  if (r.ok) pintarBarras('reporteCategorias', r.data.ventas_cat);
+  const r = await api(`/reportes/ventas?${parametrosReporte()}`);
+  if (!r.ok) {
+    showToast(r.data.msg, 'error');
+    document.getElementById('repGrafica').innerHTML = vacio('ti-alert-triangle', r.data.msg);
+    return;
+  }
+  const rep = r.data;
+  // Mostrar el rango real (útil cuando se usan los valores por defecto)
+  document.getElementById('repDesde').value = rep.desde;
+  document.getElementById('repHasta').value = rep.hasta;
+  document.getElementById('repCsv').href = `/api/reportes/ventas.csv?${parametrosReporte()}`;
+
+  const res = rep.resumen;
+  const tarjeta = (icono, num, etiqueta, destacada = false) => `
+    <div class="stat-card${destacada ? ' highlight' : ''}">
+      <div class="stat-icon"><i class="ti ${icono}"></i></div>
+      <div class="stat-num mediano">${num}</div>
+      <div class="stat-label">${etiqueta}</div>
+    </div>`;
+  document.getElementById('repResumen').innerHTML =
+    tarjeta('ti-cash', formatCOP(res.total), 'Ventas totales', true) +
+    tarjeta('ti-receipt', res.pedidos, 'Pedidos entregados') +
+    tarjeta('ti-calculator', formatCOP(res.ticket_promedio), 'Ticket promedio') +
+    tarjeta('ti-heart-handshake', formatCOP(res.propina), 'Propinas') +
+    tarjeta('ti-building-bank', formatCOP(res.impuesto), 'Impuesto') +
+    tarjeta('ti-discount-2', formatCOP(res.descuento), 'Descuentos') +
+    tarjeta('ti-circle-x', res.cancelados, 'Pedidos cancelados');
+
+  document.getElementById('repTituloGrafica').innerHTML =
+    `<i class="ti ti-chart-bar"></i> Ventas por ${NOMBRE_PERIODO[rep.periodo]}`;
+  pintarGrafica(rep.series);
+  pintarTablaReporte(rep);
+
+  document.getElementById('repProductos').innerHTML = rep.productos.length
+    ? `<table class="data-table"><thead><tr><th>#</th><th>Producto</th><th class="num">Unidades</th><th class="num">Ventas</th></tr></thead>
+       <tbody>${rep.productos.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.producto)}</td>
+         <td class="num">${p.unidades}</td><td class="num">${formatCOP(p.ventas)}</td></tr>`).join('')}</tbody></table>`
+    : vacio('ti-tools-kitchen-off', 'Sin ventas en este rango.');
+  pintarBarras('repCategorias', rep.categorias.map(c => ({ categoria: c.categoria, total: c.ventas })));
+  document.getElementById('repPagos').innerHTML = rep.pagos.length
+    ? `<table class="data-table"><thead><tr><th>Método</th><th class="num">Pedidos</th><th class="num">Total</th></tr></thead>
+       <tbody>${rep.pagos.map(p => `<tr><td>${esc(PAGOS[p.metodo_pago] || p.metodo_pago)}</td>
+         <td class="num">${p.pedidos}</td><td class="num">${formatCOP(p.total)}</td></tr>`).join('')}</tbody></table>`
+    : vacio('ti-credit-card-off', 'Sin ventas en este rango.');
+}
+
+/** Valor "redondo" para el tope del eje (1, 2 o 5 × 10^n). */
+function topeEje(max) {
+  if (max <= 0) return 1;
+  const base = Math.pow(10, Math.floor(Math.log10(max)));
+  for (const m of [1, 2, 5, 10]) if (m * base >= max) return m * base;
+  return 10 * base;
+}
+
+function pesosCortos(v) {
+  if (v >= 1e6) return `$${(v / 1e6).toLocaleString('es-CO', { maximumFractionDigits: 1 })} M`;
+  if (v >= 1e3) return `$${Math.round(v / 1e3).toLocaleString('es-CO')} mil`;
+  return `$${Math.round(v)}`;
+}
+
+function etiquetaCorta(s, periodo) {
+  const d = new Date(s.inicio + 'T00:00');
+  if (periodo === 'mes') return d.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '');
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
+function pintarGrafica(series) {
+  const cont = document.getElementById('repGrafica');
+  const max = Math.max(0, ...series.map(s => s.total));
+  const tope = topeEje(max);
+  const rejilla = [0, 0.5, 1].map(f =>
+    `<div class="rejilla" style="bottom:calc(26px + ${f} * (100% - 26px))"><span>${pesosCortos(tope * f)}</span></div>`).join('');
+  // Etiquetas del eje X: como máximo ~10 para que no se monten
+  const cada = Math.max(1, Math.ceil(series.length / 10));
+  const barras = series.map((s, i) => `
+    <div class="barra" tabindex="0" data-i="${i}" aria-label="${esc(s.etiqueta)}: ${formatCOP(s.total)}, ${s.pedidos} pedidos">
+      <i style="height:${s.total ? Math.max(2, s.total / tope * 100) : 0}%"></i>
+    </div>`).join('');
+  const ejeX = series.map((s, i) => `<span>${i % cada === 0 ? esc(etiquetaCorta(s, periodoReporte)) : ''}</span>`).join('');
+  cont.innerHTML = rejilla + `<div class="barras">${barras}</div><div class="eje-x">${ejeX}</div>` +
+    (max === 0 ? '<div class="sin-datos">Sin ventas entregadas en este rango</div>' : '') +
+    '<div class="tooltip-grafica" hidden></div>';
+
+  const tip = cont.querySelector('.tooltip-grafica');
+  const mostrar = (barra) => {
+    const s = series[Number(barra.dataset.i)];
+    tip.innerHTML = `<strong>${formatCOP(s.total)}</strong>${esc(s.etiqueta)} · ${s.pedidos} pedido(s)`;
+    const caja = cont.getBoundingClientRect();
+    const b = barra.getBoundingClientRect();
+    const alto = barra.querySelector('i').getBoundingClientRect();
+    tip.style.left = `${b.left - caja.left + b.width / 2}px`;
+    tip.style.top = `${Math.max(alto.top - caja.top - 6, 30)}px`;
+    tip.hidden = false;
+  };
+  cont.querySelectorAll('.barra').forEach(b => {
+    b.addEventListener('mouseenter', () => mostrar(b));
+    b.addEventListener('focus', () => mostrar(b));
+    b.addEventListener('mouseleave', () => { tip.hidden = true; });
+    b.addEventListener('blur', () => { tip.hidden = true; });
+  });
+}
+
+function pintarTablaReporte(rep) {
+  const r = rep.resumen;
+  const titulo = NOMBRE_PERIODO[rep.periodo][0].toUpperCase() + NOMBRE_PERIODO[rep.periodo].slice(1);
+  document.getElementById('repTabla').innerHTML = `<table class="data-table">
+    <thead><tr><th>${esc(titulo)}</th>
+      <th class="num">Pedidos</th><th class="num">Subtotal</th><th class="num">Descuentos</th><th class="num">Impuesto</th>
+      <th class="num">Propinas</th><th class="num">Total</th><th class="num">Ticket prom.</th></tr></thead>
+    <tbody>${rep.series.map(s => `<tr><td>${esc(s.etiqueta)}</td><td class="num">${s.pedidos}</td>
+      <td class="num">${formatCOP(s.subtotal)}</td><td class="num">${formatCOP(s.descuento)}</td>
+      <td class="num">${formatCOP(s.impuesto)}</td><td class="num">${formatCOP(s.propina)}</td>
+      <td class="num"><strong>${formatCOP(s.total)}</strong></td><td class="num">${formatCOP(s.ticket_promedio)}</td></tr>`).join('')}
+      <tr><td><strong>Total</strong></td><td class="num"><strong>${r.pedidos}</strong></td><td class="num">${formatCOP(r.subtotal)}</td>
+      <td class="num">${formatCOP(r.descuento)}</td><td class="num">${formatCOP(r.impuesto)}</td><td class="num">${formatCOP(r.propina)}</td>
+      <td class="num"><strong>${formatCOP(r.total)}</strong></td><td class="num">${formatCOP(r.ticket_promedio)}</td></tr>
+    </tbody></table>`;
+}
+
+function configurarFiltrosReporte() {
+  document.querySelectorAll('.segmentado button').forEach(b => b.addEventListener('click', () => {
+    periodoReporte = b.dataset.periodo;
+    document.querySelectorAll('.segmentado button').forEach(x => x.classList.toggle('activo', x === b));
+    // Al cambiar de período se vuelve al rango por defecto (30 días / 12 semanas / 12 meses)
+    document.getElementById('repDesde').value = '';
+    document.getElementById('repHasta').value = '';
+    cargarReportes();
+  }));
+  document.getElementById('repDesde').addEventListener('change', cargarReportes);
+  document.getElementById('repHasta').addEventListener('change', cargarReportes);
 }
 
 // ============================================================
@@ -792,6 +932,7 @@ async function cargarReportes() {
   document.getElementById('fPedNumero').addEventListener('input', () => { clearTimeout(espera); espera = setTimeout(cargarPedidos, 350); });
   document.getElementById('fProdTexto').addEventListener('input', pintarProductos);
   document.getElementById('fProdCategoria').addEventListener('change', pintarProductos);
+  configurarFiltrosReporte();
   document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') cerrarModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModal(); });
   mostrarSeccion(location.hash.slice(1) || 'dashboard');

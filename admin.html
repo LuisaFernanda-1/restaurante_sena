@@ -585,6 +585,38 @@
                 border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-size: .85rem; }
     .aviso-qr i { font-size: 1.5rem; color: #8a6500; }
     .aviso-qr code { background: rgba(255,255,255,.7); padding: 0 .3rem; border-radius: 4px; }
+    /* ── Reportes ── */
+    .segmentado { display: inline-flex; border: 1px solid var(--bd); border-radius: 40px; overflow: hidden; background: var(--wh); }
+    .segmentado button { border: none; background: none; padding: .55rem 1rem; font: inherit; font-size: .8rem; font-weight: 600;
+                         color: var(--tm); cursor: pointer; }
+    .segmentado button.activo { background: var(--g); color: #fff; }
+    .filtro-fecha { display: flex; align-items: center; gap: .4rem; margin: 0; text-transform: none; letter-spacing: 0; font-size: .8rem; }
+    .filtro-fecha .form-input { min-width: 0; width: auto; }
+    .stat-card .stat-num.mediano { font-size: 1.5rem; }
+    .grafica { position: relative; height: 260px; padding: 0 0 26px 64px; }
+    .grafica .rejilla { position: absolute; left: 64px; right: 0; border-top: 1px solid #e6efe9; }
+    .grafica .rejilla span { position: absolute; left: -64px; top: -8px; width: 58px; text-align: right;
+                             font-size: .68rem; color: var(--tm); }
+    .grafica .barras { position: absolute; left: 64px; right: 0; top: 0; bottom: 26px; display: flex; align-items: flex-end; gap: 2px;
+                       border-bottom: 1px solid var(--bd); }
+    .grafica .barra { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; justify-content: center;
+                      position: relative; cursor: default; outline: none; }
+    .grafica .barra i { display: block; width: 100%; max-width: 38px; background: #008040; border-radius: 4px 4px 0 0;
+                        transition: filter .15s; }
+    .grafica .barra:hover i, .grafica .barra:focus-visible i { filter: brightness(1.18); }
+    .grafica .barra:focus-visible { box-shadow: inset 0 0 0 2px var(--y); border-radius: 4px; }
+    .grafica .eje-x { position: absolute; left: 64px; right: 0; bottom: 0; height: 22px; display: flex; gap: 2px; }
+    .grafica .eje-x span { flex: 1 1 0; min-width: 0; text-align: center; font-size: .66rem; color: var(--tm);
+                           white-space: nowrap; overflow: visible; }
+    .grafica .sin-datos { position: absolute; inset: 0 0 26px 64px; display: flex; align-items: center; justify-content: center;
+                          color: var(--tm); font-size: .9rem; }
+    .tooltip-grafica { position: absolute; z-index: 5; pointer-events: none; background: var(--tx); color: #fff; font-size: .75rem;
+                       padding: .5rem .7rem; border-radius: 10px; white-space: nowrap; transform: translate(-50%, -100%);
+                       box-shadow: 0 6px 16px rgba(0,0,0,.2); }
+    .tooltip-grafica strong { display: block; font-size: .85rem; }
+    .tabla-detalle { margin-top: 1rem; }
+    .tabla-detalle summary { cursor: pointer; color: var(--g); font-weight: 600; font-size: .85rem; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -766,13 +798,47 @@
     <section id="sec-reportes" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">
-          <h1>Reportes</h1>
-          <p>Ventas de pedidos entregados</p>
+          <h1>Reportes de ventas</h1>
+          <p>Solo pedidos entregados, por la fecha del comprobante</p>
+        </div>
+        <div class="filtros">
+          <div class="segmentado" role="group" aria-label="Agrupar por">
+            <button type="button" data-periodo="dia" class="activo">Día</button>
+            <button type="button" data-periodo="semana">Semana</button>
+            <button type="button" data-periodo="mes">Mes</button>
+          </div>
+          <label class="filtro-fecha">Desde <input type="date" id="repDesde" class="form-input"></label>
+          <label class="filtro-fecha">Hasta <input type="date" id="repHasta" class="form-input"></label>
+          <a id="repCsv" class="btn btn-secondary" href="#"><i class="ti ti-file-spreadsheet"></i> Descargar Excel (CSV)</a>
         </div>
       </div>
+
+      <div class="stats-grid" id="repResumen"></div>
+
       <div class="panel">
-        <div class="panel-header"><h3><i class="ti ti-chart-pie"></i> Ventas por categoría (histórico)</h3></div>
-        <div class="panel-body" id="reporteCategorias"></div>
+        <div class="panel-header"><h3 id="repTituloGrafica"><i class="ti ti-chart-bar"></i> Ventas por día</h3></div>
+        <div class="panel-body">
+          <div class="grafica" id="repGrafica" role="img" aria-label="Gráfica de ventas por período"></div>
+          <details class="tabla-detalle">
+            <summary>Ver tabla de datos</summary>
+            <div class="tabla-scroll" id="repTabla"></div>
+          </details>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.2rem">
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-trophy"></i> Productos más vendidos</h3></div>
+          <div class="panel-body tabla-scroll" id="repProductos"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-category"></i> Ventas por categoría</h3></div>
+          <div class="panel-body" id="repCategorias"></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-credit-card"></i> Métodos de pago</h3></div>
+          <div class="panel-body tabla-scroll" id="repPagos"></div>
+        </div>
       </div>
     </section>
 

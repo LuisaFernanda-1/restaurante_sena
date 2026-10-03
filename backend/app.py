@@ -75,6 +75,10 @@ app.register_blueprint(admin_bp)
 from qr_api import bp as qr_bp  # noqa: E402
 app.register_blueprint(qr_bp)
 
+# Reportes de ventas por día, semana y mes
+from reportes_api import bp as reportes_bp  # noqa: E402
+app.register_blueprint(reportes_bp)
+
 
 # ============================================================
 # ERRORES
