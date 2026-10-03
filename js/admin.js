@@ -521,24 +521,75 @@ async function eliminarCategoria(id) {
 let mesas = [];
 
 async function cargarMesas() {
-  const r = await api('/mesas');
+  const [r, ri] = await Promise.all([api('/mesas'), api('/qr/info')]);
+  if (ri.ok) {
+    const aviso = document.getElementById('avisoServerUrl');
+    aviso.hidden = !ri.data.es_local && !ri.data.ip_no_coincide;
+    document.getElementById('avisoServerUrlTitulo').textContent = ri.data.es_local
+      ? `Los QR apuntan a ${ri.data.server_url}, que solo funciona en este computador.`
+      : `Los QR apuntan a ${ri.data.server_url}, pero este servidor tiene ahora la IP ${ri.data.ips_servidor.join(', ')}.`;
+  }
   const cont = document.getElementById('mesasTabla');
   if (!r.ok) { cont.innerHTML = vacio('ti-alert-triangle', r.data.msg); return; }
   mesas = r.data;
   if (!mesas.length) { cont.innerHTML = vacio('ti-armchair', 'No hay mesas.'); return; }
   cont.innerHTML = `<table class="data-table">
-    <thead><tr><th>Mesa</th><th>Puestos</th><th>Estado</th><th>Acciones</th></tr></thead>
+    <thead><tr><th>QR</th><th>Mesa</th><th>Puestos</th><th>Estado</th><th>Acciones</th></tr></thead>
     <tbody>${mesas.map(m => `<tr class="${m.estado === 'inactiva' ? 'fila-inactiva' : ''}">
+      <td><img class="qr-mini" src="/api/mesas/${m.id_mesa}/qr?v=${esc(m.codigo_qr)}" alt="QR de la mesa ${m.numero_mesa}"
+               loading="lazy" onclick="verQrMesa(${m.id_mesa})"></td>
       <td><strong>Mesa ${m.numero_mesa}</strong></td>
       <td>${m.capacidad}</td>
       <td><select class="form-select" style="width:auto" onchange="cambiarEstadoMesa(${m.id_mesa}, this)" aria-label="Estado de la mesa ${m.numero_mesa}">
         ${ESTADOS_MESA.map(e => `<option value="${e}" ${e === m.estado ? 'selected' : ''}>${e[0].toUpperCase() + e.slice(1)}</option>`).join('')}
       </select></td>
       <td><div class="table-actions">
+        <button class="btn btn-secondary btn-sm" onclick="verQrMesa(${m.id_mesa})"><i class="ti ti-qrcode"></i> QR</button>
         <button class="btn btn-secondary btn-sm" onclick="formMesa(${m.id_mesa})"><i class="ti ti-edit"></i> Editar</button>
         <button class="btn btn-danger-ghost btn-sm" onclick="eliminarMesa(${m.id_mesa})"><i class="ti ti-trash"></i></button>
       </div></td>
     </tr>`).join('')}</tbody></table>`;
+}
+
+async function verQrMesa(id) {
+  const m = mesas.find(x => x.id_mesa === id);
+  const r = await api(`/mesas/${id}/qr/enlace`);
+  if (!r.ok) { showToast(r.data.msg, 'error'); return; }
+  abrirModal({
+    titulo: `QR de la mesa ${m.numero_mesa}`,
+    subtitulo: 'Al escanearlo se abre la carta de esta mesa',
+    cuerpo: `<img class="qr-grande" src="/api/mesas/${id}/qr?v=${esc(m.codigo_qr)}" alt="QR de la mesa ${m.numero_mesa}">
+      <div class="enlace-qr" id="enlaceQr">${esc(r.data.url)}</div>
+      ${r.data.es_local ? '<p class="muted" style="color:#8a6500">⚠ Este enlace solo funciona en este computador: configure SERVER_URL con la IP del servidor.</p>' : ''}`,
+    acciones: [
+      { html: '<i class="ti ti-refresh"></i> Regenerar', clase: 'btn-danger-ghost', alClic: () => regenerarQr(id) },
+      { html: '<i class="ti ti-copy"></i> Copiar enlace', clase: 'btn-secondary', alClic: () => copiarEnlace(r.data.url) },
+      { html: '<i class="ti ti-download"></i> Descargar PNG', clase: 'btn-primary',
+        alClic: () => { window.location.href = `/api/mesas/${id}/qr?formato=png&descargar=1`; } }
+    ]
+  });
+}
+
+async function copiarEnlace(url) {
+  try {
+    await navigator.clipboard.writeText(url);
+    showToast('Enlace copiado', 'success');
+  } catch (e) {
+    showToast('No se pudo copiar; selecciona el enlace y cópialo a mano', 'warning');
+  }
+}
+
+async function regenerarQr(id) {
+  const m = mesas.find(x => x.id_mesa === id);
+  const ok = await confirmar({
+    titulo: `¿Generar un QR nuevo para la mesa ${m.numero_mesa}?`, peligro: true, textoBoton: 'Sí, generar nuevo',
+    mensaje: 'El QR que está impreso en la mesa dejará de funcionar. Úselo si el QR se dañó o alguien lo copió; ' +
+             'luego imprima el nuevo y reemplácelo.'
+  });
+  if (ok && await accion(enviar(`/mesas/${id}/regenerar-qr`, 'POST'))) {
+    await cargarMesas();
+    verQrMesa(id);
+  }
 }
 
 async function cambiarEstadoMesa(id, select) {

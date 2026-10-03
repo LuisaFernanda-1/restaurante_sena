@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tarjetas QR de las mesas | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <style>
+    :root { --g: #006633; --gd: #004d26; --gl: #eef7f2; --y: #FFD100; --tx: #0e1c12; --tm: #3a5544; --bd: #c0d9c8; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: #eef1ee; color: var(--tx); }
+    [hidden] { display: none !important; }
+
+    /* ── Controles (no se imprimen) ── */
+    .controles { background: #fff; border-bottom: 1px solid var(--bd); padding: 1rem 1.5rem; position: sticky; top: 0; z-index: 10; }
+    .controles-fila { max-width: 1100px; margin: 0 auto; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+    .controles h1 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--g); flex: 1; min-width: 220px; }
+    .controles label { font-size: .85rem; color: var(--tm); display: flex; align-items: center; gap: .4rem; }
+    .controles input[type=text] { padding: .5rem .8rem; border: 1.5px solid var(--bd); border-radius: 10px; font: inherit; width: 220px; }
+    .boton { display: inline-flex; align-items: center; gap: .4rem; padding: .65rem 1.2rem; border-radius: 30px; border: none;
+             background: var(--g); color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
+    .boton:disabled { opacity: .5; cursor: wait; }
+    .boton.secundario { background: #fff; color: var(--tx); border: 1px solid var(--bd); }
+    .aviso { max-width: 1100px; margin: .8rem auto 0; background: #fff4cc; border: 1px solid #e8c33a; border-radius: 12px;
+             padding: .7rem 1rem; font-size: .85rem; }
+    .ayuda { max-width: 1100px; margin: .6rem auto 0; font-size: .8rem; color: var(--tm); }
+
+    /* ── Tarjetas ── */
+    .hoja { max-width: 1100px; margin: 1.5rem auto; padding: 0 1rem;
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+    .tarjeta {
+      background: #fff; border: 2px dashed #b9cbbf; border-radius: 18px; padding: 1.1rem 1rem 1rem;
+      text-align: center; display: flex; flex-direction: column; align-items: center;
+      break-inside: avoid; page-break-inside: avoid;
+    }
+    .tarjeta .restaurante { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--gd); }
+    .tarjeta .mesa { font-family: 'Playfair Display', serif; font-size: 2.3rem; font-weight: 900; line-height: 1.1; margin: .1rem 0 .3rem; }
+    .tarjeta img { width: 190px; height: 190px; }
+    .tarjeta .instruccion { font-size: .95rem; font-weight: 700; margin-top: .3rem; }
+    .tarjeta .pasos { font-size: .75rem; color: var(--tm); margin-top: .2rem; line-height: 1.4; }
+    .tarjeta .wifi { font-size: .75rem; margin-top: .45rem; background: var(--gl); border-radius: 20px; padding: .2rem .8rem; }
+    .vacio { text-align: center; padding: 3rem; color: var(--tm); grid-column: 1/-1; }
+
+    /* ── Impresión: 6 tarjetas por hoja (carta o A4) ── */
+    @page { size: auto; margin: 10mm; }
+    @media print {
+      body { background: #fff; }
+      .controles, .aviso, .ayuda { display: none !important; }
+      .hoja { max-width: none; margin: 0; padding: 0; gap: 6mm; grid-template-columns: repeat(2, 1fr); }
+      .tarjeta { height: 84mm; padding: 4mm; border-radius: 4mm; justify-content: center; }
+      .tarjeta img { width: 45mm; height: 45mm; }
+      .tarjeta .mesa { font-size: 22pt; }
+      .tarjeta .restaurante { font-size: 11pt; }
+      .tarjeta .instruccion { font-size: 10pt; }
+      .tarjeta .pasos, .tarjeta .wifi { font-size: 8pt; }
+      .tarjeta:nth-child(6n) { break-after: page; page-break-after: always; }
+    }
+  </style>
+</head>
+<body>
+  <div class="controles">
+    <div class="controles-fila">
+      <h1><i class="ti ti-qrcode"></i> Tarjetas QR de las mesas</h1>
+      <label>Red Wi-Fi (opcional): <input type="text" id="wifi" maxlength="40" placeholder="Ej: Restaurante-Clientes"></label>
+      <label><input type="checkbox" id="incluirInactivas"> Incluir mesas inactivas</label>
+      <button class="boton secundario" onclick="history.length > 1 ? history.back() : window.close()"><i class="ti ti-arrow-left"></i> Volver</button>
+      <button class="boton" id="btnImprimir" onclick="window.print()" disabled><i class="ti ti-printer"></i> Imprimir</button>
+    </div>
+    <p class="ayuda">Se imprimen 6 tarjetas por hoja. Recórtelas por la línea punteada y póngalas en cada mesa
+      (idealmente plastificadas o en un porta-tarjetas).</p>
+  </div>
+  <div class="aviso" id="aviso" hidden></div>
+
+  <main class="hoja" id="hoja"><div class="vacio">Cargando…</div></main>
+
+  <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let mesas = [];
+    let restaurante = 'Restaurante SENA';
+
+    function wifiGuardado() {
+      try { return localStorage.getItem('sena_qr_wifi') || ''; } catch (e) { return ''; }
+    }
+
+    function pintar() {
+      const incluir = document.getElementById('incluirInactivas').checked;
+      const lista = mesas.filter(m => incluir || m.estado !== 'inactiva');
+      const hoja = document.getElementById('hoja');
+      if (!lista.length) { hoja.innerHTML = '<div class="vacio">No hay mesas para imprimir.</div>'; return; }
+      hoja.innerHTML = lista.map(m => `
+        <div class="tarjeta">
+          <div class="restaurante">${esc(restaurante)}</div>
+          <div class="mesa">Mesa ${m.numero_mesa}</div>
+          <img src="/api/mesas/${m.id_mesa}/qr?v=${esc(m.codigo_qr)}" alt="Código QR de la mesa ${m.numero_mesa}">
+          <div class="instruccion">Escanea para ver la carta y pedir</div>
+          <div class="pasos">Abre la cámara de tu celular, apunta al código y toca el enlace.</div>
+          <div class="wifi" hidden><i class="ti ti-wifi"></i> <span></span></div>
+        </div>`).join('');
+      pintarWifi();
+      esperarImagenes();
+    }
+
+    function pintarWifi() {
+      const wifi = document.getElementById('wifi').value.trim();
+      try { localStorage.setItem('sena_qr_wifi', wifi); } catch (e) { /* modo privado */ }
+      document.querySelectorAll('.tarjeta .wifi').forEach(el => {
+        el.hidden = !wifi;
+        el.querySelector('span').textContent = `Conéctate a la red «${wifi}»`;
+      });
+    }
+
+    /** El botón Imprimir se habilita cuando todos los QR terminaron de cargar. */
+    function esperarImagenes() {
+      const boton = document.getElementById('btnImprimir');
+      const imgs = [...document.querySelectorAll('.tarjeta img')];
+      boton.disabled = true;
+      let faltan = imgs.length;
+      const listo = () => { if (--faltan <= 0) boton.disabled = false; };
+      if (!faltan) { boton.disabled = false; return; }
+      imgs.forEach(img => {
+        if (img.complete && img.naturalWidth) listo();
+        else { img.addEventListener('load', listo); img.addEventListener('error', listo); }
+      });
+    }
+
+    (async () => {
+      await requerirSesion(['Administrador']);
+      const [rm, rc, ri] = await Promise.all([apiFetch('/mesas'), apiFetch('/config'), apiFetch('/qr/info')]);
+      if (rc.ok) restaurante = rc.data.restaurante || restaurante;
+      if (ri.ok && (ri.data.es_local || ri.data.ip_no_coincide)) {
+        const aviso = document.getElementById('aviso');
+        aviso.hidden = false;
+        aviso.textContent = (ri.data.es_local
+          ? `⚠ Los QR apuntan a ${ri.data.server_url}, que solo funciona en este computador. `
+          : `⚠ Los QR apuntan a ${ri.data.server_url}, pero este servidor tiene ahora la IP ${ri.data.ips_servidor.join(', ')}. `) +
+          'Configure SERVER_URL en backend/.env con la IP fija del servidor y reinícielo antes de imprimir.';
+      }
+      if (!rm.ok) { document.getElementById('hoja').innerHTML = `<div class="vacio">${esc(rm.data.msg)}</div>`; return; }
+      mesas = rm.data;
+      document.getElementById('wifi').value = wifiGuardado();
+      document.getElementById('wifi').addEventListener('input', pintarWifi);
+      document.getElementById('incluirInactivas').addEventListener('change', pintar);
+      pintar();
+    })();
+  </script>
+</body>
+</html>

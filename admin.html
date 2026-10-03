@@ -577,6 +577,14 @@
     .detalle-items td { padding: .4rem 0; border-bottom: 1px solid var(--g2); }
     .detalle-totales div { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
     .detalle-totales .total { font-weight: 800; font-size: 1rem; border-top: 1px solid var(--bd); margin-top: .3rem; padding-top: .5rem; }
+    .qr-mini { width: 56px; height: 56px; border: 1px solid var(--g2); border-radius: 8px; background: #fff; cursor: pointer; }
+    .qr-grande { width: 100%; max-width: 280px; display: block; margin: .5rem auto 1rem; border: 1px solid var(--g2); border-radius: 12px; }
+    .enlace-qr { font-family: Consolas, monospace; font-size: .75rem; background: var(--gl); border-radius: 10px;
+                 padding: .6rem .8rem; word-break: break-all; margin-bottom: .5rem; }
+    .aviso-qr { display: flex; gap: .8rem; align-items: flex-start; background: #fff4cc; border: 1px solid #e8c33a;
+                border-radius: 16px; padding: 1rem 1.2rem; margin-bottom: 1.2rem; font-size: .85rem; }
+    .aviso-qr i { font-size: 1.5rem; color: #8a6500; }
+    .aviso-qr code { background: rgba(255,255,255,.7); padding: 0 .3rem; border-radius: 4px; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -614,7 +622,7 @@
       <li><a href="#pedidos" data-seccion="pedidos"><i class="ti ti-shopping-cart"></i> Pedidos</a></li>
       <li><a href="#carta" data-seccion="carta"><i class="ti ti-tools-kitchen-2"></i> Carta</a></li>
       <li><a href="#categorias" data-seccion="categorias"><i class="ti ti-category"></i> Categorías</a></li>
-      <li><a href="#mesas" data-seccion="mesas"><i class="ti ti-armchair"></i> Mesas</a></li>
+      <li><a href="#mesas" data-seccion="mesas"><i class="ti ti-qrcode"></i> Mesas y QR</a></li>
       <li><a href="#personal" data-seccion="personal"><i class="ti ti-users"></i> Personal</a></li>
       <li><a href="#cupones" data-seccion="cupones"><i class="ti ti-discount-2"></i> Cupones</a></li>
       <li><a href="#reportes" data-seccion="reportes"><i class="ti ti-chart-bar"></i> Reportes</a></li>
@@ -713,10 +721,19 @@
     <section id="sec-mesas" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">
-          <h1>Mesas</h1>
-          <p>Mesas del restaurante y su estado</p>
+          <h1>Mesas y QR</h1>
+          <p>Mesas del restaurante, su estado y su código QR</p>
         </div>
-        <button onclick="formMesa()" class="btn btn-primary"><i class="ti ti-plus"></i> Nueva mesa</button>
+        <div class="filtros">
+          <a href="qr-mesas.html" target="_blank" rel="noopener" class="btn btn-secondary"><i class="ti ti-printer"></i> Imprimir tarjetas QR</a>
+          <button onclick="formMesa()" class="btn btn-primary"><i class="ti ti-plus"></i> Nueva mesa</button>
+        </div>
+      </div>
+      <div class="aviso-qr" id="avisoServerUrl" hidden>
+        <i class="ti ti-alert-triangle"></i>
+        <div><strong id="avisoServerUrlTitulo"></strong><br>
+        Los celulares no podrán abrir la carta. Antes de imprimir, ponga en <code>backend/.env</code> la IP fija del servidor
+        (por ejemplo <code>SERVER_URL=http://192.168.1.10:8000</code>) y reinicie el servidor. Vea el README.</div>
       </div>
       <div class="panel"><div class="panel-body tabla-scroll" id="mesasTabla"></div></div>
     </section>

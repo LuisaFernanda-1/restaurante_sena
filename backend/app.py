@@ -71,6 +71,10 @@ app.config.update(
 from admin_api import bp as admin_bp  # noqa: E402
 app.register_blueprint(admin_bp)
 
+# Códigos QR de las mesas y verificación de comprobantes
+from qr_api import bp as qr_bp  # noqa: E402
+app.register_blueprint(qr_bp)
+
 
 # ============================================================
 # ERRORES

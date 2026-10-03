@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Verificar comprobante | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <style>
+    :root { --g: #006633; --gd: #004d26; --gl: #eef7f2; --g2: #d0e9dc; --tx: #0e1c12; --tm: #3a5544; --bd: #c0d9c8; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'DM Sans', sans-serif; background: linear-gradient(135deg, #f5f7f5, #e8efe5); color: var(--tx);
+           min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.2rem; }
+    [hidden] { display: none !important; }
+    .caja { background: #fff; border: 1px solid var(--bd); border-radius: 24px; padding: 2rem 1.6rem; max-width: 440px; width: 100%;
+            box-shadow: 0 20px 40px -14px rgba(0, 60, 20, .2); text-align: center; }
+    .icono { font-size: 3.6rem; display: block; margin-bottom: .4rem; }
+    .valido .icono { color: #1f8a3c; }
+    .invalido .icono { color: #b3261e; }
+    .anulado .icono { color: #b89600; }
+    h1 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: .3rem; }
+    .sub { color: var(--tm); font-size: .9rem; margin-bottom: 1.3rem; }
+    .datos { text-align: left; border-top: 1px solid var(--g2); }
+    .datos div { display: flex; justify-content: space-between; gap: 1rem; padding: .55rem 0; border-bottom: 1px solid var(--g2); font-size: .92rem; }
+    .datos span:first-child { color: var(--tm); }
+    .datos .total { font-weight: 800; font-size: 1.05rem; }
+    .datos .total span:last-child { color: var(--g); }
+    .nota { font-size: .75rem; color: var(--tm); margin-top: 1.1rem; }
+    a { color: var(--g); font-weight: 700; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <main class="caja" id="caja" aria-live="polite">
+    <i class="ti ti-loader-2 icono" aria-hidden="true"></i>
+    <h1>Verificando…</h1>
+  </main>
+
+  <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    const PAGOS = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', digital: 'Pago digital' };
+
+    function mostrarInvalido(titulo, texto) {
+      const caja = document.getElementById('caja');
+      caja.className = 'caja invalido';
+      caja.innerHTML = `<i class="ti ti-circle-x icono" aria-hidden="true"></i>
+        <h1></h1><p class="sub"></p><a href="index.html">Ir al inicio</a>`;
+      caja.querySelector('h1').textContent = titulo;
+      caja.querySelector('.sub').textContent = texto;
+    }
+
+    (async () => {
+      const codigo = (new URLSearchParams(location.search).get('c') || '').trim().toLowerCase();
+      if (!/^[0-9a-f]{32}$/.test(codigo)) {
+        mostrarInvalido('Código no válido', 'El enlace no contiene un código de verificación correcto.');
+        return;
+      }
+      const r = await apiFetch(`/verificar/${codigo}`);
+      if (!r.ok) {
+        if (r.status === 404) mostrarInvalido('Comprobante no encontrado', 'Este código no corresponde a ningún comprobante emitido por el restaurante.');
+        else mostrarInvalido('No se pudo verificar', r.data.msg || 'Intente de nuevo en unos minutos.');
+        return;
+      }
+      const f = r.data;
+      const fila = (k, v, clase = '') => `<div class="${clase}"><span>${esc(k)}</span><span>${esc(v)}</span></div>`;
+      const caja = document.getElementById('caja');
+      caja.className = `caja ${f.valido ? 'valido' : 'anulado'}`;
+      caja.innerHTML = `
+        <i class="ti ${f.valido ? 'ti-circle-check' : 'ti-alert-triangle'} icono" aria-hidden="true"></i>
+        <h1>${f.valido ? 'Comprobante válido' : 'Comprobante no vigente'}</h1>
+        <p class="sub">Emitido por ${esc(f.restaurante)}${f.nit ? ' · NIT ' + esc(f.nit) : ''}</p>
+        <div class="datos">
+          ${fila('Comprobante', f.numero_factura)}
+          ${fila('Fecha', formatFecha(f.fecha_factura))}
+          ${fila('Pedido', `${f.numero_pedido} · Mesa ${f.numero_mesa}`)}
+          ${fila('Productos', `${f.unidades} unidad(es)`)}
+          ${fila('Subtotal', formatCOP(f.subtotal))}
+          ${f.descuento ? fila('Descuento', '− ' + formatCOP(f.descuento)) : ''}
+          ${fila(`${f.impuesto_nombre} (${Number(f.impuesto_pct)}%)`, formatCOP(f.impuesto))}
+          ${fila('Propina', formatCOP(f.propina))}
+          ${fila('Total', formatCOP(f.total), 'total')}
+          ${fila('Método de pago', PAGOS[f.metodo_pago] || f.metodo_pago)}
+        </div>
+        <p class="nota">Este comprobante no reemplaza la factura electrónica de venta (DIAN).</p>`;
+    })();
+  </script>
+</body>
+</html>

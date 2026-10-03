@@ -550,6 +550,11 @@
     }
     .total-row.descuento span:last-child { color: var(--g); font-weight: 600; }
     .nota-legal { font-size: .72rem; color: var(--tm); margin-top: .6rem; }
+    .qr-verificacion { display: flex; align-items: center; gap: 1rem; justify-content: center; margin: 1.4rem 0 .4rem;
+                       padding: 1rem; border: 1px dashed var(--bd); border-radius: 16px; }
+    .qr-verificacion img { width: 110px; height: 110px; flex-shrink: 0; }
+    .qr-verificacion strong { color: var(--g); }
+    .qr-verificacion p { font-size: .8rem; color: var(--tm); margin-top: .2rem; max-width: 260px; }
     [hidden] { display: none !important; }
   </style>
 </head>
@@ -667,6 +672,15 @@
           </div>
         </div>
 
+        <!-- QR DE VERIFICACIÓN -->
+        <div class="qr-verificacion" id="qrVerificacion" hidden>
+          <img id="qrVerificacionImg" alt="Código QR para verificar este comprobante">
+          <div>
+            <strong>Verifica este comprobante</strong>
+            <p>Escanea el código para confirmar que fue emitido por el restaurante.</p>
+          </div>
+        </div>
+
         <!-- PIE -->
         <div class="invoice-footer">
           <div class="footer-stars">★★★★★</div>
@@ -761,6 +775,12 @@
       texto('pagoIcon', icono);
       texto('facMetodoPago', nombre);
     }
+
+    const qr = document.getElementById('qrVerificacion');
+    qr.hidden = !esFactura;
+    const img = document.getElementById('qrVerificacionImg');
+    const srcQr = `/api/facturas/token/${encodeURIComponent(token)}/qr`;
+    if (esFactura && img.getAttribute('src') !== srcQr) img.src = srcQr;
 
     document.getElementById('facNotasWrap').hidden = !datos.notas;
     texto('facNotas', datos.notas || '');
