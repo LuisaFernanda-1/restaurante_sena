@@ -436,3 +436,33 @@ ruta('DELETE', '/cupones/{id:n}', function (string $id): void {
     ejecutar('DELETE FROM cupones WHERE id_cupon = ?', [$id]);
     responder(['ok' => true, 'msg' => 'Cupón eliminado']);
 });
+
+// ============================================================
+// DIAGNÓSTICO DE SERVER_URL (los QR llevan esa dirección)
+// GET /api/qr/info
+// ============================================================
+ruta('GET', '/qr/info', function (): void {
+    exigir_rol([ROL_ADMIN]);
+    $url = (string) cfg('SERVER_URL');
+    $host = strtolower((string) (parse_url($url, PHP_URL_HOST) ?? ''));
+    $esLocal = in_array($host, ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'], true);
+    // Si SERVER_URL usa una IP (XAMPP en la red local) se comprueba que sea
+    // de este computador; con un dominio (Hostinger) no se puede saber.
+    $ipsServidor = [];
+    $ipNoCoincide = false;
+    if ($host !== '' && filter_var($host, FILTER_VALIDATE_IP) && !$esLocal) {
+        $ipsServidor = array_values(array_unique(array_filter([
+            $_SERVER['SERVER_ADDR'] ?? null,
+            ...(gethostbynamel((string) gethostname()) ?: []),
+        ], fn ($ip) => $ip && !str_starts_with((string) $ip, '127.') && $ip !== '::1')));
+        $ipNoCoincide = $ipsServidor !== [] && !in_array($host, $ipsServidor, true);
+    }
+    responder([
+        'server_url' => $url,
+        'configurado' => $url !== '' && preg_match('#^https?://#i', $url) === 1,
+        'es_local' => $esLocal,
+        'ip_no_coincide' => $ipNoCoincide,
+        'ips_servidor' => $ipsServidor,
+        'https' => str_starts_with(strtolower($url), 'https://'),
+    ]);
+});

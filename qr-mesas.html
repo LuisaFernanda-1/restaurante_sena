@@ -36,7 +36,8 @@
     }
     .tarjeta .restaurante { font-family: 'Playfair Display', serif; font-size: 1.05rem; font-weight: 700; color: var(--gd); }
     .tarjeta .mesa { font-family: 'Playfair Display', serif; font-size: 2.3rem; font-weight: 900; line-height: 1.1; margin: .1rem 0 .3rem; }
-    .tarjeta img { width: 190px; height: 190px; }
+    .tarjeta .qr { width: 190px; }
+    .tarjeta .qr svg { display: block; width: 100%; height: auto; }
     .tarjeta .instruccion { font-size: .95rem; font-weight: 700; margin-top: .3rem; }
     .tarjeta .pasos { font-size: .75rem; color: var(--tm); margin-top: .2rem; line-height: 1.4; }
     .tarjeta .wifi { font-size: .75rem; margin-top: .45rem; background: var(--gl); border-radius: 20px; padding: .2rem .8rem; }
@@ -49,7 +50,7 @@
       .controles, .aviso, .ayuda { display: none !important; }
       .hoja { max-width: none; margin: 0; padding: 0; gap: 6mm; grid-template-columns: repeat(2, 1fr); }
       .tarjeta { height: 84mm; padding: 4mm; border-radius: 4mm; justify-content: center; }
-      .tarjeta img { width: 45mm; height: 45mm; }
+      .tarjeta .qr { width: 45mm; }
       .tarjeta .mesa { font-size: 22pt; }
       .tarjeta .restaurante { font-size: 11pt; }
       .tarjeta .instruccion { font-size: 10pt; }
@@ -76,9 +77,15 @@
 
   <script src="js/main.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/vendor/qrcode-generator.js"></script>
+  <script src="js/qr.js"></script>
   <script>
+    // ?mesa=<id> imprime solo esa tarjeta; &imprimir=1 abre el diálogo de impresión
+    const parametros = new URLSearchParams(location.search);
+    const soloMesa = Number(parametros.get('mesa')) || null;
     let mesas = [];
     let restaurante = 'Restaurante SENA';
+    let serverUrl = '';
 
     function wifiGuardado() {
       try { return localStorage.getItem('sena_qr_wifi') || ''; } catch (e) { return ''; }
@@ -86,20 +93,20 @@
 
     function pintar() {
       const incluir = document.getElementById('incluirInactivas').checked;
-      const lista = mesas.filter(m => incluir || m.estado !== 'inactiva');
+      const lista = soloMesa ? mesas.filter(m => m.id_mesa === soloMesa)
+                             : mesas.filter(m => incluir || m.estado !== 'inactiva');
       const hoja = document.getElementById('hoja');
       if (!lista.length) { hoja.innerHTML = '<div class="vacio">No hay mesas para imprimir.</div>'; return; }
       hoja.innerHTML = lista.map(m => `
-        <div class="tarjeta">
+        <div class="tarjeta" data-mesa="${m.numero_mesa}">
           <div class="restaurante">${esc(restaurante)}</div>
           <div class="mesa">Mesa ${m.numero_mesa}</div>
-          <img src="/api/mesas/${m.id_mesa}/qr?v=${esc(m.codigo_qr)}" alt="Código QR de la mesa ${m.numero_mesa}">
+          <div class="qr">${QR.svg(QR.urlMesa(serverUrl, m.numero_mesa, m.codigo_qr), `Código QR de la mesa ${m.numero_mesa}`)}</div>
           <div class="instruccion">Escanea para ver la carta y pedir</div>
           <div class="pasos">Abre la cámara de tu celular, apunta al código y toca el enlace.</div>
           <div class="wifi" hidden><i class="ti ti-wifi"></i> <span></span></div>
         </div>`).join('');
       pintarWifi();
-      esperarImagenes();
     }
 
     function pintarWifi() {
@@ -111,31 +118,27 @@
       });
     }
 
-    /** El botón Imprimir se habilita cuando todos los QR terminaron de cargar. */
-    function esperarImagenes() {
-      const boton = document.getElementById('btnImprimir');
-      const imgs = [...document.querySelectorAll('.tarjeta img')];
-      boton.disabled = true;
-      let faltan = imgs.length;
-      const listo = () => { if (--faltan <= 0) boton.disabled = false; };
-      if (!faltan) { boton.disabled = false; return; }
-      imgs.forEach(img => {
-        if (img.complete && img.naturalWidth) listo();
-        else { img.addEventListener('load', listo); img.addEventListener('error', listo); }
-      });
-    }
-
     (async () => {
       await requerirSesion(['Administrador']);
       const [rm, rc, ri] = await Promise.all([apiFetch('/mesas'), apiFetch('/config'), apiFetch('/qr/info')]);
       if (rc.ok) restaurante = rc.data.restaurante || restaurante;
-      if (ri.ok && (ri.data.es_local || ri.data.ip_no_coincide)) {
-        const aviso = document.getElementById('aviso');
-        aviso.hidden = false;
-        aviso.textContent = (ri.data.es_local
-          ? `⚠ Los QR apuntan a ${ri.data.server_url}, que solo funciona en este computador. `
-          : `⚠ Los QR apuntan a ${ri.data.server_url}, pero este servidor tiene ahora la IP ${ri.data.ips_servidor.join(', ')}. `) +
-          'Configure SERVER_URL en backend/.env con la IP fija del servidor y reinícielo antes de imprimir.';
+      if (ri.ok) {
+        serverUrl = ri.data.server_url;
+        let texto = '';
+        if (!ri.data.configurado) {
+          texto = `⚠ SERVER_URL no está configurado (api/config.local.php): los QR saldrían con la dirección de este ` +
+                  `navegador (${QR.base('')}). Configúrelo antes de imprimir.`;
+        } else if (ri.data.es_local) {
+          texto = `⚠ Los QR apuntan a ${ri.data.server_url}, que solo funciona en este computador. Configure SERVER_URL antes de imprimir.`;
+        } else if (ri.data.ip_no_coincide) {
+          texto = `⚠ Los QR apuntan a ${ri.data.server_url}, pero este servidor tiene ahora la IP ` +
+                  `${ri.data.ips_servidor.join(', ')}. Corrija SERVER_URL antes de imprimir.`;
+        }
+        if (texto) {
+          const aviso = document.getElementById('aviso');
+          aviso.hidden = false;
+          aviso.textContent = texto;
+        }
       }
       if (!rm.ok) { document.getElementById('hoja').innerHTML = `<div class="vacio">${esc(rm.data.msg)}</div>`; return; }
       mesas = rm.data;
@@ -143,6 +146,8 @@
       document.getElementById('wifi').addEventListener('input', pintarWifi);
       document.getElementById('incluirInactivas').addEventListener('change', pintar);
       pintar();
+      document.getElementById('btnImprimir').disabled = false;
+      if (parametros.get('imprimir') === '1') setTimeout(() => window.print(), 300);
     })();
   </script>
 </body>

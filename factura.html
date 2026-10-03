@@ -552,7 +552,8 @@
     .nota-legal { font-size: .72rem; color: var(--tm); margin-top: .6rem; }
     .qr-verificacion { display: flex; align-items: center; gap: 1rem; justify-content: center; margin: 1.4rem 0 .4rem;
                        padding: 1rem; border: 1px dashed var(--bd); border-radius: 16px; }
-    .qr-verificacion img { width: 110px; height: 110px; flex-shrink: 0; }
+    .qr-verificacion-codigo { width: 110px; flex-shrink: 0; }
+    .qr-verificacion-codigo svg { display: block; width: 100%; height: auto; }
     .qr-verificacion strong { color: var(--g); }
     .qr-verificacion p { font-size: .8rem; color: var(--tm); margin-top: .2rem; max-width: 260px; }
     [hidden] { display: none !important; }
@@ -674,7 +675,7 @@
 
         <!-- QR DE VERIFICACIÓN -->
         <div class="qr-verificacion" id="qrVerificacion" hidden>
-          <img id="qrVerificacionImg" alt="Código QR para verificar este comprobante">
+          <div id="qrVerificacionImg" class="qr-verificacion-codigo"></div>
           <div>
             <strong>Verifica este comprobante</strong>
             <p>Escanea el código para confirmar que fue emitido por el restaurante.</p>
@@ -710,6 +711,8 @@
 <script src="js/main.js"></script>
 <script src="js/api.js"></script>
 <script src="js/cliente.js"></script>
+<script src="js/vendor/qrcode-generator.js"></script>
+<script src="js/qr.js"></script>
 <script>
   const token = new URLSearchParams(location.search).get('t') || MisPedidos.ultimo()?.token;
   const NOMBRES_PAGO = { efectivo: ['💵', 'Efectivo'], tarjeta: ['💳', 'Tarjeta débito/crédito'], digital: ['📱', 'Pago digital (Nequi/Daviplata)'] };
@@ -778,9 +781,13 @@
 
     const qr = document.getElementById('qrVerificacion');
     qr.hidden = !esFactura;
-    const img = document.getElementById('qrVerificacionImg');
-    const srcQr = `/api/facturas/token/${encodeURIComponent(token)}/qr`;
-    if (esFactura && img.getAttribute('src') !== srcQr) img.src = srcQr;
+    // QR de verificación generado en el navegador: SERVER_URL/verificar.html?c=<código>
+    const caja = document.getElementById('qrVerificacionImg');
+    if (esFactura && datos.codigo_verificacion && caja.dataset.codigo !== datos.codigo_verificacion) {
+      caja.innerHTML = QR.svg(QR.urlVerificacion(cfg.server_url, datos.codigo_verificacion),
+                              'Código QR para verificar este comprobante');
+      caja.dataset.codigo = datos.codigo_verificacion;
+    }
 
     document.getElementById('facNotasWrap').hidden = !datos.notas;
     texto('facNotas', datos.notas || '');

@@ -578,7 +578,17 @@
     .detalle-totales div { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
     .detalle-totales .total { font-weight: 800; font-size: 1rem; border-top: 1px solid var(--bd); margin-top: .3rem; padding-top: .5rem; }
     .qr-mini { width: 56px; height: 56px; border: 1px solid var(--g2); border-radius: 8px; background: #fff; cursor: pointer; }
-    .qr-grande { width: 100%; max-width: 280px; display: block; margin: .5rem auto 1rem; border: 1px solid var(--g2); border-radius: 12px; }
+    .qr-grande { width: 100%; max-width: 280px; display: block; margin: .5rem auto 1rem; border: 1px solid var(--g2); border-radius: 12px; overflow: hidden; }
+    .qr-grande svg { display: block; width: 100%; height: auto; }
+    .rejilla-mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 1rem; }
+    .tarjeta-mesa { border: 1px solid var(--bd); border-radius: 18px; padding: 1rem; background: var(--wh); display: flex; flex-direction: column; gap: .7rem; }
+    .tarjeta-mesa.inactiva { opacity: .6; }
+    .tarjeta-mesa .qr-caja { cursor: pointer; border: 1px solid var(--g2); border-radius: 12px; overflow: hidden; width: 160px; max-width: 100%; align-self: center; }
+    .tarjeta-mesa .qr-caja svg { display: block; width: 100%; height: auto; }
+    .tarjeta-mesa h4 { font-family: 'Playfair Display', serif; font-size: 1.3rem; color: var(--gd); }
+    .tarjeta-mesa-datos { display: flex; flex-direction: column; gap: .4rem; }
+    .tarjeta-mesa .url-mesa { font-size: .68rem; margin: 0; }
+    .tarjeta-mesa .table-actions .btn { flex: 1 1 auto; justify-content: center; }
     .enlace-qr { font-family: Consolas, monospace; font-size: .75rem; background: var(--gl); border-radius: 10px;
                  padding: .6rem .8rem; word-break: break-all; margin-bottom: .5rem; }
     .aviso-qr { display: flex; gap: .8rem; align-items: flex-start; background: #fff4cc; border: 1px solid #e8c33a;
@@ -758,7 +768,7 @@
           <p>Mesas del restaurante, su estado y su código QR</p>
         </div>
         <div class="filtros">
-          <a href="qr-mesas.html" target="_blank" rel="noopener" class="btn btn-secondary"><i class="ti ti-printer"></i> Imprimir tarjetas QR</a>
+          <a href="qr-mesas.html" target="_blank" rel="noopener" class="btn btn-secondary"><i class="ti ti-printer"></i> Imprimir todas</a>
           <button onclick="formMesa()" class="btn btn-primary"><i class="ti ti-plus"></i> Nueva mesa</button>
         </div>
       </div>
@@ -888,6 +898,8 @@
 
 <script src="js/main.js"></script>
 <script src="js/api.js"></script>
+<script src="js/vendor/qrcode-generator.js"></script>
+<script src="js/qr.js"></script>
 <script src="js/admin.js"></script>
 </body>
 </html>
