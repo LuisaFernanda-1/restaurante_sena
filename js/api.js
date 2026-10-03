@@ -6,7 +6,9 @@
  * Cada función simula un método GET o POST hacia un Servlet.
  */
 
-const API_BASE = "http://localhost:5000/api";
+// Rutas relativas: el mismo servidor Flask entrega las páginas y la API,
+// así funciona igual en el computador y en el celular que escanea el QR.
+const API_BASE = "/api";
 
 // ============================================================
 // HELPER GENÉRICO

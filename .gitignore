@@ -1,0 +1,21 @@
+# Configuración con contraseñas y claves: NUNCA subir
+backend/.env
+.env
+
+# Entornos virtuales y caché de Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Respaldos y registros
+respaldos/
+logs/
+*.sql.gz
+
+# Sistema / editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
