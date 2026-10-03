@@ -213,6 +213,10 @@ class Migrador:
         if self.columna("pedidos", "token")["nulo"] == "YES":
             self.paso("pedidos: token obligatorio", "ALTER TABLE pedidos MODIFY token CHAR(32) NOT NULL")
         self.agregar_indice("pedidos", "uq_pedidos_token", "UNIQUE KEY uq_pedidos_token (token)")
+        self.agregar_columna("pedidos", "origen", "VARCHAR(10) NOT NULL DEFAULT 'qr' AFTER token")
+        if not self.restriccion_existe("chk_pedidos_origen"):
+            self.paso("pedidos: restricción chk_pedidos_origen",
+                      "ALTER TABLE pedidos ADD CONSTRAINT chk_pedidos_origen CHECK (origen IN ('qr','manual'))")
 
         for col in ("subtotal", "descuento", "impuesto", "propina", "total"):
             self.agregar_columna("pedidos", col, "INT NOT NULL DEFAULT 0 AFTER notas"

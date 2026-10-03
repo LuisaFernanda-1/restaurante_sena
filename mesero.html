@@ -67,6 +67,7 @@
           <li><span class="cant">${i.cantidad}×</span><span>${esc(i.emoji || '')} ${esc(i.nombre)}</span></li>`).join('')}
         </ul>
         ${p.notas ? `<div class="notas"><strong>Nota:</strong> ${esc(p.notas)}</div>` : ''}
+        ${p.origen === 'manual' ? `<div class="sin-qr"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Mesa elegida sin QR: confirma que es la mesa ${p.numero_mesa}</div>` : ''}
         <div class="acciones">
           <button class="boton entregar" data-accion="entregar"><i class="ti ti-check"></i> Entregado</button>
         </div>

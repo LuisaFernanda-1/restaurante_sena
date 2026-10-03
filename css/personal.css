@@ -79,6 +79,8 @@ body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--bg); col
 .notas { background: var(--amarillo); border-left: 4px solid var(--amarillo-borde); border-radius: 8px;
          padding: .5rem .7rem; font-size: .92rem; margin-bottom: .7rem; }
 .tarjeta.demora .notas, .tarjeta.urgente .notas { background: rgba(255,255,255,.7); }
+.sin-qr { display: flex; align-items: center; gap: .4rem; background: #e8f0fe; color: #1e4f7a; border-radius: 8px;
+          padding: .45rem .7rem; font-size: .85rem; font-weight: 700; margin-bottom: .7rem; }
 .acciones { display: flex; gap: .6rem; flex-wrap: wrap; }
 .acciones .boton { flex: 1; }
 .acciones .boton.peligro { flex: 0 0 auto; }

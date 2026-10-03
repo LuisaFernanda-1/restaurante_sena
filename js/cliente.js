@@ -56,7 +56,8 @@ const Mesa = {
   urlMenu() {
     const m = leerJSON(this.CLAVE, null);
     if (m && Date.now() - m.ts < DOCE_HORAS) {
-      return `menu.html?mesa=${encodeURIComponent(m.numero)}&c=${encodeURIComponent(m.codigo)}`;
+      const codigo = m.codigo ? `&c=${encodeURIComponent(m.codigo)}` : "";   // sin código = mesa elegida a mano
+      return `menu.html?mesa=${encodeURIComponent(m.numero)}${codigo}`;
     }
     return "menu.html";
   }

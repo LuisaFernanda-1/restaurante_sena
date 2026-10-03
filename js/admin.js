@@ -298,7 +298,7 @@ async function cargarPedidos() {
       const activo = ['pendiente', 'en_preparacion', 'listo'].includes(ped.estado);
       return `<tr>
         <td><strong>${esc(ped.numero_pedido)}</strong></td>
-        <td>${ped.numero_mesa}</td>
+        <td>${ped.numero_mesa}${ped.origen === 'manual' ? ' ' + badge('sin QR', 'badge-amarillo') : ''}</td>
         <td>${formatHora(ped.fecha_pedido)}</td>
         <td>${ped.num_items}</td>
         <td>${formatCOP(ped.total)}</td>
@@ -345,7 +345,8 @@ async function verPedido(id) {
   abrirModal({
     titulo: `Pedido ${p.numero_pedido}`,
     subtitulo: `Mesa ${p.numero_mesa} · ${formatFecha(p.fecha_pedido)}`,
-    cuerpo: `<div>${badgeEstado(p.estado)}</div>
+    cuerpo: `<div>${badgeEstado(p.estado)}${p.origen === 'manual'
+        ? ' ' + badge('Mesa elegida sin escanear el QR', 'badge-amarillo') : ''}</div>
       <table class="detalle-items">${p.items.map(i => `<tr>
         <td>${esc(i.emoji || '')} ${esc(i.nombre)}</td><td style="text-align:center">×${i.cantidad}</td>
         <td style="text-align:right">${formatCOP(i.subtotal)}</td></tr>`).join('')}</table>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elige tu mesa | Restaurante SENA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.31.0/dist/tabler-icons.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --g: #006633; --gd: #004d26; --gl: #eef7f2; --g2: #d0e9dc;
+      --y: #FFD100; --yd: #b89600; --yp: rgba(255,209,0,.12);
+      --wh: #ffffff; --bg: #f5f7f5; --tx: #0e1c12; --tm: #3a5544; --bd: #c0d9c8;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--tx); min-height: 100vh; }
+    [hidden] { display: none !important; }
+
+    .nav { background: rgba(245,247,245,.92); border-bottom: 1px solid rgba(192,217,200,.55); position: sticky; top: 0; z-index: 10; backdrop-filter: blur(12px); }
+    .nav-inner { max-width: 1000px; margin: 0 auto; height: 64px; padding: 0 1.2rem; display: flex; align-items: center; justify-content: space-between; }
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo-badge { width: 36px; height: 36px; background: var(--g); border-radius: 9px; display: flex; align-items: center; justify-content: center; }
+    .logo-badge i { font-size: 18px; color: var(--y); }
+    .logo-text { font-family: 'Playfair Display', serif; font-size: 17px; font-weight: 700; color: var(--tx); }
+    .logo-text em { color: var(--g); font-style: normal; }
+    .enlace { color: var(--g); font-weight: 600; font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 5px; }
+
+    .cabecera { background: var(--g); color: #fff; padding: 2.2rem 1.2rem 2rem; text-align: center; }
+    .cabecera h1 { font-family: 'Playfair Display', serif; font-size: clamp(26px, 5vw, 36px); font-weight: 900; }
+    .cabecera h1 em { color: var(--y); font-style: italic; }
+    .cabecera p { opacity: .75; margin-top: .4rem; font-size: 15px; }
+
+    main { max-width: 1000px; margin: 0 auto; padding: 1.5rem 1.2rem 3rem; }
+    .ayuda { background: var(--wh); border: 1px solid var(--bd); border-radius: 14px; padding: .9rem 1.1rem; font-size: 14px;
+             color: var(--tm); display: flex; gap: .7rem; align-items: flex-start; margin-bottom: 1.3rem; }
+    .ayuda i { font-size: 22px; color: var(--g); flex-shrink: 0; }
+    .ayuda a { color: var(--g); font-weight: 600; }
+
+    .rejilla { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .8rem; }
+    .mesa {
+      background: var(--wh); border: 2px solid var(--bd); border-radius: 18px; padding: 1rem .6rem;
+      cursor: pointer; text-align: center; font: inherit; color: var(--tx);
+      transition: border-color .15s, transform .1s, box-shadow .15s; min-height: 118px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .25rem;
+    }
+    .mesa:hover, .mesa:focus-visible { border-color: var(--g); box-shadow: 0 6px 18px rgba(0,60,20,.1); outline: none; }
+    .mesa:active { transform: scale(.97); }
+    .mesa .num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 900; color: var(--gd); line-height: 1; }
+    .mesa .etq { font-size: 12px; color: var(--tm); }
+    .mesa .estado { font-size: 11px; font-weight: 700; border-radius: 12px; padding: 2px 8px; margin-top: .2rem; }
+    .estado.disponible { background: #e6f7ec; color: #2e7d32; }
+    .estado.ocupada { background: #fff4cc; color: #8a6500; }
+    .estado.reservada { background: #e8f0fe; color: #1e6f9f; }
+
+    .vacio { text-align: center; padding: 3rem 1rem; color: var(--tm); }
+    .vacio i { font-size: 42px; display: block; margin-bottom: .6rem; color: var(--bd); }
+    .boton { display: inline-flex; align-items: center; gap: .5rem; background: var(--g); color: #fff; border: none; border-radius: 12px;
+             padding: .85rem 1.4rem; font: inherit; font-weight: 700; font-size: 15px; cursor: pointer; text-decoration: none; }
+    .boton.secundario { background: var(--wh); color: var(--tx); border: 1.5px solid var(--bd); }
+
+    /* Confirmación */
+    .velo { position: fixed; inset: 0; background: rgba(10,28,16,.55); display: flex; align-items: center; justify-content: center;
+            padding: 1rem; z-index: 50; }
+    .caja { background: var(--wh); border-radius: 22px; padding: 1.8rem 1.5rem; max-width: 380px; width: 100%; text-align: center; }
+    .caja .num { font-family: 'Playfair Display', serif; font-size: 3.4rem; font-weight: 900; color: var(--gd); line-height: 1; margin: .4rem 0; }
+    .caja p { color: var(--tm); font-size: 14px; margin-bottom: 1.2rem; }
+    .caja .botones { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap; }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="logo">
+        <div class="logo-badge"><i class="ti ti-tools-kitchen-2" aria-hidden="true"></i></div>
+        <span class="logo-text">Restaurante <em>SENA</em></span>
+      </a>
+      <a href="menu.html" class="enlace" onclick="Mesa.olvidar()"><i class="ti ti-book" aria-hidden="true"></i> Ver la carta</a>
+    </div>
+  </nav>
+
+  <header class="cabecera">
+    <h1>¿En qué <em>mesa</em> estás?</h1>
+    <p>Toca el número de tu mesa para ver la carta y hacer tu pedido</p>
+  </header>
+
+  <main>
+    <div class="ayuda" id="ayuda" hidden>
+      <i class="ti ti-info-circle" aria-hidden="true"></i>
+      <span>El número está en la tarjeta de tu mesa. Si compartes mesa con otras personas, elijan el mismo número.
+        ¿Tienes el código QR a la mano? <a href="index.html">Escanéalo</a> y entrarás directo a tu mesa.</span>
+    </div>
+    <div id="contenido"><div class="vacio"><i class="ti ti-loader-2" aria-hidden="true"></i>Cargando mesas…</div></div>
+  </main>
+
+  <div class="velo" id="confirmacion" hidden role="dialog" aria-modal="true" aria-labelledby="tituloConfirmar">
+    <div class="caja">
+      <strong id="tituloConfirmar">¿Estás en la mesa…</strong>
+      <div class="num" id="numConfirmar"></div>
+      <p>Tu pedido llegará a esta mesa. Verifica el número antes de continuar.</p>
+      <div class="botones">
+        <button class="boton secundario" type="button" id="btnCancelar">Elegir otra</button>
+        <button class="boton" type="button" id="btnConfirmar"><i class="ti ti-check" aria-hidden="true"></i> Sí, ver la carta</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/main.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/cliente.js"></script>
+  <script>
+    const NOMBRES_ESTADO = { disponible: 'Libre', ocupada: 'Ocupada', reservada: 'Reservada' };
+    let elegida = null;
+
+    function mostrarConfirmacion(numero) {
+      elegida = numero;
+      document.getElementById('numConfirmar').textContent = numero;
+      document.getElementById('tituloConfirmar').textContent = '¿Estás en la mesa';
+      document.getElementById('confirmacion').hidden = false;
+      document.getElementById('btnConfirmar').focus();
+    }
+
+    function cerrarConfirmacion() {
+      document.getElementById('confirmacion').hidden = true;
+      elegida = null;
+    }
+
+    function irAMesa() {
+      if (!elegida) return;
+      Mesa.olvidar();     // se reemplaza cualquier mesa anterior (de QR o elegida)
+      window.location.href = `menu.html?mesa=${encodeURIComponent(elegida)}`;
+    }
+
+    document.getElementById('btnCancelar').addEventListener('click', cerrarConfirmacion);
+    document.getElementById('btnConfirmar').addEventListener('click', irAMesa);
+    document.getElementById('confirmacion').addEventListener('click', e => { if (e.target.id === 'confirmacion') cerrarConfirmacion(); });
+    document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarConfirmacion(); });
+
+    (async () => {
+      const cont = document.getElementById('contenido');
+      const rc = await apiFetch('/config');
+      if (rc.ok && !rc.data.pedido_sin_qr) {
+        cont.innerHTML = `<div class="vacio"><i class="ti ti-qrcode" aria-hidden="true"></i>
+          <p style="margin-bottom:1.2rem">En este restaurante los pedidos se hacen <strong>escaneando el código QR</strong> de tu mesa.</p>
+          <a class="boton" href="index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al inicio</a></div>`;
+        return;
+      }
+      const r = await apiFetch('/mesas/disponibles');
+      if (!r.ok) {
+        cont.innerHTML = `<div class="vacio"><i class="ti ti-wifi-off" aria-hidden="true"></i><p></p></div>`;
+        cont.querySelector('p').textContent = r.data.msg || 'No pudimos cargar las mesas.';
+        return;
+      }
+      if (!r.data.length) {
+        cont.innerHTML = '<div class="vacio"><i class="ti ti-armchair" aria-hidden="true"></i>No hay mesas habilitadas en este momento.</div>';
+        return;
+      }
+      document.getElementById('ayuda').hidden = false;
+      cont.innerHTML = `<div class="rejilla">${r.data.map(m => `
+        <button class="mesa" type="button" data-mesa="${m.numero_mesa}" aria-label="Mesa ${m.numero_mesa}, ${m.capacidad} puestos, ${NOMBRES_ESTADO[m.estado] || m.estado}">
+          <span class="etq">Mesa</span>
+          <span class="num">${m.numero_mesa}</span>
+          <span class="etq"><i class="ti ti-users" aria-hidden="true"></i> ${m.capacidad} puestos</span>
+          <span class="estado ${esc(m.estado)}">${esc(NOMBRES_ESTADO[m.estado] || m.estado)}</span>
+        </button>`).join('')}</div>`;
+      cont.querySelectorAll('.mesa').forEach(b => b.addEventListener('click', () => mostrarConfirmacion(Number(b.dataset.mesa))));
+    })();
+  </script>
+</body>
+</html>

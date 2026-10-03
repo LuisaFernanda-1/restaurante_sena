@@ -64,6 +64,10 @@ SECRET_KEY = _texto("SECRET_KEY", obligatorio=True)
 SERVER_URL = (_texto("SERVER_URL", "http://localhost:8000") or "").rstrip("/")
 # Poner en 1 solo si el sistema se publica con HTTPS
 COOKIE_SEGURA = _texto("COOKIE_SEGURA", "0") == "1"
+# 1 = el comensal también puede elegir su mesa en una lista, sin escanear
+# el QR (el pedido llega marcado "sin QR" para que el personal verifique).
+# 0 = solo se puede pedir escaneando el QR de la mesa.
+PERMITIR_PEDIDO_SIN_QR = _texto("PERMITIR_PEDIDO_SIN_QR", "1") == "1"
 
 # --- Impuestos y propina (se calculan en el servidor, en pesos enteros) ---
 IMPUESTO_NOMBRE = _texto("IMPUESTO_NOMBRE", "Impoconsumo") or "Impoconsumo"

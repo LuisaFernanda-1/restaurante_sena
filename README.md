@@ -2,7 +2,7 @@
 
 Sistema web para tomar pedidos en un restaurante desde el celular del comensal.
 
-1. El comensal **escanea el QR de su mesa**, ve la carta, arma su pedido y lo envía.
+1. El comensal **escanea el QR de su mesa** (o, si el restaurante lo permite, **elige su mesa en una lista** sin escanear), ve la carta, arma su pedido y lo envía.
 2. La **cocina** ve los pedidos nuevos (con aviso sonoro), los prepara y los marca como *listos*.
 3. El **mesero** ve los pedidos listos con su número de mesa, los lleva y los marca como *entregados*.
 4. Se genera el **comprobante** (con QR de verificación) y la venta aparece en los **reportes**.
@@ -128,6 +128,7 @@ Todas las claves y datos del restaurante están en `backend\.env`. **Este archiv
 | `SECRET_KEY` | *64 caracteres aleatorios* | Firma las sesiones del personal. Genere una con `python -c "import secrets; print(secrets.token_hex(32))"`. Si la cambia, todo el personal debe volver a iniciar sesión. |
 | `SERVER_URL` | `http://192.168.1.10:8000` | **Dirección con la que los celulares abren el sistema.** Va dentro de los QR. Use la IP fija del servidor (sección 6). |
 | `COOKIE_SEGURA` | `0` | Ponga `1` solo si publica el sistema con HTTPS. |
+| `PERMITIR_PEDIDO_SIN_QR` | `1` | `1` = además del QR, el comensal puede **pedir sin escanear** eligiendo su mesa en una lista (página principal → *Pedir sin escanear*). `0` = solo escaneando el QR. Vea la sección 9. |
 | `IMPUESTO_NOMBRE` | `Impoconsumo` | Nombre del impuesto en la factura. |
 | `IMPUESTO_PCT` | `8` | Porcentaje del impuesto (impoconsumo de restaurantes: 8 %). |
 | `PROPINA_SUGERIDA_PCT` | `10` | Propina sugerida. **Es voluntaria**: el comensal puede quitarla antes de confirmar. |
@@ -237,6 +238,9 @@ La red del restaurante debe estar marcada como **Privada**: *Configuración → 
 **Comensal** (desde su celular):
 
 - Escanea el QR → ve la carta → agrega platos → en el carrito puede escribir notas, aplicar un **cupón** y **quitar la propina** si lo desea → *Confirmar pedido*.
+- **Sin escanear** (si `PERMITIR_PEDIDO_SIN_QR=1`): en la página principal (`SERVER_URL`) pulsa **Pedir sin escanear** → toca el número de su mesa → confirma → pide igual que con el QR. Puede usar **Cambiar mesa** si se equivocó. Útil cuando un QR se dañó, para quien no sabe escanear o para mesas sin tarjeta.
+  - Los pedidos hechos así llegan a cocina, meseros y administración marcados como **"Mesa elegida sin QR"**, para que el personal confirme la mesa al entregar.
+  - Con el QR la mesa queda fija y no se puede cambiar; un QR con código incorrecto siempre se rechaza.
 - Ve el estado de su pedido en tiempo real (se actualiza cada 10 s), puede pulsar **Llamar mesero** y ver su **comprobante**.
 
 **Cocina** (`cocina.html`, ideal en una tableta):
@@ -331,7 +335,7 @@ cd backend
 .\.venv\Scripts\python.exe -m pytest
 ```
 
-Cubren todos los endpoints, los permisos (sin sesión → 401, rol incorrecto → 403), los cálculos de dinero, la validación de datos, los QR, los reportes, la migración desde la versión anterior, y el respaldo y la restauración. Se espera `210 passed` (unos 2 minutos).
+Cubren todos los endpoints, los permisos (sin sesión → 401, rol incorrecto → 403), los cálculos de dinero, la validación de datos, los QR, los reportes, la migración desde la versión anterior, y el respaldo y la restauración. Se espera `220 passed` (unos 2 minutos y medio).
 
 ---
 
@@ -361,6 +365,7 @@ Cubren todos los endpoints, los permisos (sin sesión → 401, rol incorrecto �
 - Permisos por rol en el servidor: sin sesión → 401, rol incorrecto → 403. El chef no puede entregar, el mesero no puede cocinar, solo el administrador gestiona.
 - Precios y totales calculados **siempre en el servidor**; consultas SQL parametrizadas; validación de todos los datos.
 - Código secreto por mesa en el QR. El comensal consulta su pedido y su comprobante con un token aleatorio, no con un número consecutivo.
+- **Pedir sin escanear** (`PERMITIR_PEDIDO_SIN_QR=1`) es una comodidad con un costo: cualquiera conectado al Wi-Fi puede pedir a nombre de cualquier mesa. Por eso esos pedidos llegan marcados para que el personal verifique. Si se presentan pedidos falsos, ponga `PERMITIR_PEDIDO_SIN_QR=0` y reinicie el servidor: desde ese momento solo se pide con el QR.
 - Protección contra CSRF y XSS, cookie de sesión `HttpOnly`, límite de intentos de ingreso y de pedidos por dispositivo.
 - El servidor solo entrega los archivos de la página; nunca el código del backend ni el `.env`.
 
@@ -377,7 +382,7 @@ Cubren todos los endpoints, los permisos (sin sesión → 401, rol incorrecto �
 
 ```
 restaurante_sena/
-├── index.html, menu.html, pedido.html, factura.html, verificar.html   ← comensal
+├── index.html, mesas.html, menu.html, pedido.html, factura.html, verificar.html   ← comensal
 ├── login.html, admin.html, cocina.html, mesero.html, qr-mesas.html    ← personal
 ├── css/   styles.css, personal.css
 ├── js/    api.js (conexión con la API), main.js, cliente.js, admin.js, personal.js

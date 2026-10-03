@@ -178,6 +178,7 @@ def config_publica():
         # Hora del servidor: las pantallas del personal calculan los minutos
         # de espera con ella, sin depender del reloj de cada dispositivo.
         "ahora": datetime.now().isoformat(timespec="seconds"),
+        "pedido_sin_qr": config.PERMITIR_PEDIDO_SIN_QR,
     })
 
 
@@ -431,16 +432,28 @@ ESTADOS_MESA = ("disponible", "ocupada", "reservada", "inactiva")
 
 
 def mesa_por_qr(numero, codigo):
-    """Devuelve la mesa si el número y el código del QR coinciden."""
+    """
+    Devuelve la mesa y cómo se identificó (mesa["origen"]):
+      - "qr":     el código del QR coincide.
+      - "manual": no se envió código y PERMITIR_PEDIDO_SIN_QR está activo
+                  (el comensal eligió la mesa en la lista, sin escanear).
+    Un código que NO coincide siempre se rechaza.
+    """
     mesa = db.consultar_uno(
         "SELECT id_mesa, numero_mesa, capacidad, estado, codigo_qr FROM mesas WHERE numero_mesa = %s", (numero,)
     )
     if not mesa:
         raise ErrorAPI(f"La mesa {numero} no existe.", 404, "mesa_no_existe")
-    if not isinstance(codigo, str) or not codigo or not mesa["codigo_qr"] \
-            or not hmac.compare_digest(codigo.strip().lower(), mesa["codigo_qr"]):
+    codigo = codigo.strip().lower() if isinstance(codigo, str) else ""
+    if not codigo:
+        if config.PERMITIR_PEDIDO_SIN_QR:
+            mesa["origen"] = "manual"
+            return mesa
+        raise ErrorAPI("Para pedir, escanee el código QR que está en su mesa.", 403, "qr_requerido")
+    if not mesa["codigo_qr"] or not hmac.compare_digest(codigo, mesa["codigo_qr"]):
         raise ErrorAPI("El código QR de la mesa no es válido. Escanee de nuevo el QR que está en su mesa.",
                        403, "qr_invalido")
+    mesa["origen"] = "qr"
     return mesa
 
 
@@ -470,7 +483,18 @@ def get_mesa(numero):
         "capacidad": mesa["capacidad"],
         "estado": mesa["estado"],
         "activa": mesa["estado"] != "inactiva",
+        "origen": mesa["origen"],
     })
+
+
+@app.route("/api/mesas/disponibles", methods=["GET"])
+def get_mesas_disponibles():
+    """Lista para elegir la mesa sin escanear el QR (si está permitido)."""
+    if not config.PERMITIR_PEDIDO_SIN_QR:
+        raise ErrorAPI("Para pedir, escanee el código QR que está en su mesa.", 403, "qr_requerido")
+    return jresp(db.consultar(
+        "SELECT numero_mesa, capacidad, estado FROM mesas WHERE estado <> 'inactiva' ORDER BY numero_mesa"
+    ))
 
 
 @app.route("/api/mesas/<int:mid>/estado", methods=["PUT"])
@@ -509,7 +533,7 @@ MAX_ITEMS_PEDIDO = 30
 COLUMNAS_PEDIDO = """
     p.id_pedido, p.numero_pedido, p.estado, p.notas,
     p.subtotal, p.descuento, p.impuesto, p.propina, p.total,
-    p.fecha_pedido, p.fecha_listo, p.fecha_entrega, m.numero_mesa
+    p.fecha_pedido, p.fecha_listo, p.fecha_entrega, m.numero_mesa, p.origen
 """
 
 
@@ -694,10 +718,10 @@ def crear_pedido():
 
     with db.transaccion() as cur:
         cur.execute(
-            """INSERT INTO pedidos (id_mesa, id_cupon, token, estado, notas,
+            """INSERT INTO pedidos (id_mesa, id_cupon, token, origen, estado, notas,
                                     subtotal, descuento, impuesto, propina, total)
-               VALUES (%s, %s, %s, 'pendiente', %s, %s, %s, %s, %s, %s)""",
-            (mesa["id_mesa"], cupon["id_cupon"] if cupon else None, token, notas,
+               VALUES (%s, %s, %s, %s, 'pendiente', %s, %s, %s, %s, %s, %s)""",
+            (mesa["id_mesa"], cupon["id_cupon"] if cupon else None, token, mesa["origen"], notas,
              totales["subtotal"], totales["descuento"], totales["impuesto"],
              totales["propina"], totales["total"]),
         )
@@ -718,7 +742,8 @@ def crear_pedido():
         )
 
     seguridad.limitador_pedidos.registrar(request.remote_addr)
-    log.info("Pedido %s creado en mesa %s por %s", numero, numero_mesa, totales["total"])
+    log.info("Pedido %s creado en mesa %s por %s (%s)", numero, numero_mesa, totales["total"],
+             "QR" if mesa["origen"] == "qr" else "mesa elegida sin QR")
     return jresp({
         "ok": True,
         "id_pedido": pedido_id,

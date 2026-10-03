@@ -23,6 +23,8 @@ os.environ.setdefault("SECRET_KEY", "clave-solo-para-pruebas")
 os.environ["IMPUESTO_NOMBRE"] = "Impoconsumo"
 os.environ["IMPUESTO_PCT"] = "8"
 os.environ["PROPINA_SUGERIDA_PCT"] = "10"
+# Por defecto las pruebas usan el modo "solo QR"; test_sin_qr.py prueba el otro.
+os.environ["PERMITIR_PEDIDO_SIN_QR"] = "0"
 
 import mysql.connector  # noqa: E402
 

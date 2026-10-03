@@ -35,7 +35,7 @@ def test_stats_no_falla_con_decimal(admin):
 def test_validar_mesa_con_codigo_qr(cliente):
     r = cliente.get(f"/api/mesas/5?c={codigo_mesa(5)}")
     assert r.status_code == 200
-    assert r.get_json() == {"numero_mesa": 5, "capacidad": 4, "estado": "disponible", "activa": True}
+    assert r.get_json() == {"numero_mesa": 5, "capacidad": 4, "estado": "disponible", "activa": True, "origen": "qr"}
     assert "codigo_qr" not in r.get_json()
 
 

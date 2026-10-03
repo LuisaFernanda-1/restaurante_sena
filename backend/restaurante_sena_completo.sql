@@ -112,6 +112,8 @@ CREATE TABLE cupones (
 -- PEDIDOS
 --   token: identificador secreto con el que el comensal consulta su
 --          pedido y su factura (no se puede adivinar como el id).
+--   origen: 'qr' si la mesa se validó con el código de su QR;
+--           'manual' si el comensal eligió la mesa sin escanear.
 --   Los totales se calculan en el servidor al crear el pedido.
 CREATE TABLE pedidos (
   id_pedido     INT NOT NULL AUTO_INCREMENT,
@@ -120,6 +122,7 @@ CREATE TABLE pedidos (
   id_cupon      INT DEFAULT NULL,
   numero_pedido VARCHAR(20) DEFAULT NULL,
   token         CHAR(32) NOT NULL,
+  origen        VARCHAR(10) NOT NULL DEFAULT 'qr',
   estado        VARCHAR(20) NOT NULL DEFAULT 'pendiente',
   notas         VARCHAR(300) DEFAULT NULL,
   subtotal      INT NOT NULL DEFAULT 0,
@@ -138,7 +141,8 @@ CREATE TABLE pedidos (
   CONSTRAINT fk_pedidos_mesa    FOREIGN KEY (id_mesa)    REFERENCES mesas (id_mesa),
   CONSTRAINT fk_pedidos_usuario FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario),
   CONSTRAINT fk_pedidos_cupon   FOREIGN KEY (id_cupon)   REFERENCES cupones (id_cupon),
-  CONSTRAINT chk_pedidos_estado CHECK (estado IN ('pendiente','en_preparacion','listo','entregado','cancelado'))
+  CONSTRAINT chk_pedidos_estado CHECK (estado IN ('pendiente','en_preparacion','listo','entregado','cancelado')),
+  CONSTRAINT chk_pedidos_origen CHECK (origen IN ('qr','manual'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- DETALLE DE PEDIDOS

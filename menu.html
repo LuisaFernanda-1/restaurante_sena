@@ -471,7 +471,7 @@
     .aviso-consulta div {
       background: var(--yp); border: 1px solid rgba(184,150,0,.35);
       border-radius: 12px; padding: 12px 16px; font-size: 13.5px; color: var(--tx);
-      display: flex; gap: 10px; align-items: center;
+      display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
     }
     .aviso-consulta i { font-size: 22px; color: var(--yd); }
     .error-mesa {
@@ -544,6 +544,9 @@
         <span id="mesaTag" class="mesa-tag" hidden>
           <i class="ti ti-armchair" aria-hidden="true"></i> <span id="mesaTagTxt"></span>
         </span>
+        <a id="btnCambiarMesa" href="mesas.html" class="btn-nav-sec" hidden title="La elegiste sin escanear el QR">
+          <i class="ti ti-switch-horizontal" aria-hidden="true"></i><span>Cambiar mesa</span>
+        </a>
         <a id="btnMisPedidos" href="pedido.html" class="btn-nav-sec" hidden>
           <i class="ti ti-receipt" aria-hidden="true"></i><span>Mi pedido</span>
         </a>
@@ -576,7 +579,9 @@
   <div id="avisoConsulta" class="aviso-consulta" hidden>
     <div>
       <i class="ti ti-qrcode" aria-hidden="true"></i>
-      <span>Estás viendo la carta. Para hacer tu pedido, <strong>escanea el código QR de tu mesa</strong> con la cámara del celular.</span>
+      <span>Estás viendo la carta. Para hacer tu pedido, <strong>escanea el código QR de tu mesa</strong> con la cámara del celular<span class="solo-sin-qr" hidden> o elige tu mesa en la lista</span>.</span>
+      <a href="mesas.html" class="btn-nav-sec solo-sin-qr" hidden style="margin-left:auto;white-space:nowrap">
+        <i class="ti ti-armchair" aria-hidden="true"></i> Elegir mi mesa</a>
     </div>
   </div>
 
@@ -585,9 +590,14 @@
     <i class="ti ti-alert-triangle grande" aria-hidden="true"></i>
     <h2 id="errorMesaTitulo">Mesa no válida</h2>
     <p id="errorMesaTexto"></p>
-    <a href="menu.html" class="btn-confirm" onclick="Mesa.olvidar()">
-      <i class="ti ti-book" aria-hidden="true"></i> Ver la carta
-    </a>
+    <div style="display:flex;gap:.6rem;justify-content:center;flex-wrap:wrap">
+      <a href="mesas.html" class="btn-confirm solo-sin-qr" hidden onclick="Mesa.olvidar()">
+        <i class="ti ti-armchair" aria-hidden="true"></i> Elegir mi mesa
+      </a>
+      <a href="menu.html" class="btn-confirm" onclick="Mesa.olvidar()">
+        <i class="ti ti-book" aria-hidden="true"></i> Ver la carta
+      </a>
+    </div>
   </div>
 
   <div id="contenidoMenu">
@@ -738,7 +748,9 @@
 
     async function validarMesa() {
       const m = Mesa.actual();
-      if (!m) {                                   // sin QR: solo consultar la carta
+      // Opción "pedir sin escanear" (PERMITIR_PEDIDO_SIN_QR en el servidor)
+      document.querySelectorAll('.solo-sin-qr').forEach(el => { el.hidden = !estado.cfg.pedido_sin_qr; });
+      if (!m) {                                   // sin mesa: solo consultar la carta
         document.getElementById('avisoConsulta').hidden = false;
         return;
       }
@@ -750,7 +762,9 @@
       if (!r.ok) {
         if (r.status === 404 || r.status === 403) {
           if (!m.deUrl) { Mesa.olvidar(); document.getElementById('avisoConsulta').hidden = false; return; }
-          mostrarErrorMesa(r.status === 404 ? 'La mesa no existe' : 'Código QR no válido', r.data.msg);
+          const titulos = { mesa_no_existe: 'La mesa no existe', qr_invalido: 'Código QR no válido',
+                            qr_requerido: 'Escanea el QR de tu mesa' };
+          mostrarErrorMesa(titulos[r.data.codigo] || 'Mesa no válida', r.data.msg);
         } else {
           mostrarErrorMesa('Sin conexión', r.data.msg);
         }
@@ -763,7 +777,9 @@
       }
       estado.mesa = { numero: r.data.numero_mesa, codigo: m.codigo };
       Mesa.guardar(estado.mesa.numero, estado.mesa.codigo);
-      if (m.deUrl) history.replaceState(null, '', 'menu.html');   // la dirección ya no muestra el código
+      if (m.deUrl && m.codigo) history.replaceState(null, '', 'menu.html');   // la dirección ya no muestra el código
+      // Mesa elegida sin escanear: se puede cambiar. Con QR queda fija.
+      document.getElementById('btnCambiarMesa').hidden = r.data.origen !== 'manual';
       for (const id of ['mesaTag', 'mesaHeaderTag', 'btnLlamar', 'btnCarritoNav', 'carrito']) {
         document.getElementById(id).hidden = false;
       }
@@ -1031,7 +1047,7 @@
       boton.disabled = false;
       if (!r.ok) {
         cerrarConfirmacion();
-        if (r.data.codigo === 'qr_invalido') {
+        if (r.data.codigo === 'qr_invalido' || r.data.codigo === 'qr_requerido') {
           Mesa.olvidar();
           mostrarErrorMesa('Código QR no válido', r.data.msg);
           return;

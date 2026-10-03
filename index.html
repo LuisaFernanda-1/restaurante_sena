@@ -657,6 +657,7 @@
       .hero h1 { font-size: 36px; }
       .stat-num { font-size: 30px; }
     }
+      [hidden] { display: none !important; }
   </style>
 </head>
 
@@ -696,8 +697,12 @@
       <div class="hero-btns fade-up">
         <button class="btn-primary" onclick="openModal()">
           <i class="ti ti-qrcode" aria-hidden="true"></i>
-          ¿Cómo pedir?
+          Escanear el QR de mi mesa
         </button>
+        <a href="mesas.html" class="btn-primary solo-sin-qr" hidden id="btnPedirSinQr">
+          <i class="ti ti-armchair" aria-hidden="true"></i>
+          Pedir sin escanear
+        </a>
         <a href="menu.html" class="btn-ghost">
           <i class="ti ti-book" aria-hidden="true"></i>
           Ver la carta
@@ -922,7 +927,11 @@
         <li>Toca el enlace que aparece: se abrirá la carta con tu mesa.</li>
         <li>Elige tus platos y pulsa <strong>Confirmar pedido</strong>.</li>
       </ol>
-      <a href="menu.html" class="btn-primary full-width" style="text-decoration:none">
+      <a href="mesas.html" class="btn-primary full-width solo-sin-qr" hidden style="text-decoration:none;margin-bottom:.6rem">
+        <i class="ti ti-armchair" aria-hidden="true"></i>
+        ¿No puedes escanear? Elige tu mesa
+      </a>
+      <a href="menu.html" class="btn-ghost full-width" style="text-decoration:none;justify-content:center">
         <i class="ti ti-book" aria-hidden="true"></i>
         Ver la carta sin pedir
       </a>
@@ -941,6 +950,13 @@
     function closeModal() {
       document.getElementById('mesaModal').classList.remove('open');
     }
+
+    /* "Pedir sin escanear" solo aparece si el restaurante lo permite (PERMITIR_PEDIDO_SIN_QR) */
+    apiFetch('/config').then(r => {
+      if (r.ok && r.data.pedido_sin_qr) {
+        document.querySelectorAll('.solo-sin-qr').forEach(el => { el.hidden = false; });
+      }
+    });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
     });
