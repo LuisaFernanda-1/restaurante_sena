@@ -1,26 +1,18 @@
-# Configuración con contraseñas y claves: NUNCA subir
-backend/.env
+# Configuración con contraseñas: NUNCA subir
+api/config.local.php
 .env
-
-# Entornos virtuales y caché de Python
-.venv/
-venv/
-__pycache__/
-*.pyc
-.pytest_cache/
+*.local
 
 # Respaldos y registros
 respaldos/
 logs/
 *.sql.gz
 
+# Paquete para el hosting (se genera con scripts/generar_zip.php)
+restaurante_hostinger.zip
+
 # Sistema / editores
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
-
-# Configuración del backend PHP con contraseñas: NUNCA subir
-api/config.local.php
-# Paquete para el hosting (se genera con scripts/generar_zip.php)
-restaurante_hostinger.zip
