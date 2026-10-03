@@ -526,6 +526,58 @@
         grid-template-columns: 1fr;
       }
     }
+    @media (max-width: 600px) { .ocultar-movil { display: none; } .nav-inner { padding: 0 .5rem; } }
+    /* ========== AGREGADOS: panel conectado a la API ========== */
+    .badge-cancelado { background: #fff3f3; color: #c0392b; }
+    .badge-gris { background: #f0f2f0; color: #5e6b5e; }
+    .badge-verde { background: #e6f7ec; color: #2e7d32; }
+    .badge-amarillo { background: #fff9e6; color: #c98b00; }
+    .badge-rojo { background: #fff3f3; color: #c0392b; }
+    .btn-sm { padding: 0.35rem 0.8rem; font-size: 0.72rem; }
+    .btn-danger-ghost { background: transparent; color: #c0392b; border: 1px solid #f5c0c0; }
+    .btn-danger-ghost:hover { background: #fff3f3; }
+    .btn:disabled { opacity: .55; cursor: not-allowed; transform: none; }
+    .filtros { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+    .filtros .form-input, .filtros .form-select { width: auto; min-width: 140px; }
+    .tabla-scroll { overflow-x: auto; }
+    .vacio { text-align: center; color: var(--tm); padding: 2.5rem 1rem; }
+    .vacio i { font-size: 2.4rem; display: block; margin-bottom: .5rem; color: var(--bd); }
+    .muted { color: var(--tm); font-size: .75rem; }
+    .emoji-celda { font-size: 1.4rem; width: 40px; }
+    .fila-inactiva td { opacity: .55; }
+    .barra-cat { display: flex; align-items: center; gap: .8rem; margin-bottom: .7rem; font-size: .85rem; }
+    .barra-cat .nombre { width: 110px; flex-shrink: 0; }
+    .barra-cat .pista { flex: 1; height: 10px; background: var(--gl); border-radius: 10px; overflow: hidden; }
+    .barra-cat .relleno { height: 100%; background: linear-gradient(90deg, var(--g), var(--gm)); border-radius: 10px; }
+    .barra-cat .valor { width: 110px; text-align: right; font-weight: 600; }
+    /* interruptor disponible / activo */
+    .switch { position: relative; display: inline-block; width: 42px; height: 24px; margin: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch span { position: absolute; inset: 0; background: #ccd6cf; border-radius: 24px; cursor: pointer; transition: .2s; }
+    .switch span::before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; top: 3px;
+                           background: #fff; border-radius: 50%; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+    .switch input:checked + span { background: var(--g); }
+    .switch input:checked + span::before { transform: translateX(18px); }
+    .switch input:focus-visible + span { outline: 2px solid var(--y); }
+    /* modal genérico */
+    .modal-overlay.open { display: flex; }
+    .modal-box { max-height: 92vh; overflow-y: auto; }
+    .modal-box h2 { font-family: 'Playfair Display', serif; margin-bottom: .3rem; }
+    .modal-sub { color: var(--tm); margin-bottom: 1.2rem; font-size: .85rem; }
+    .modal-error { display: none; background: #fff3f3; border: 1px solid #f5c0c0; color: #c0392b;
+                   border-radius: 12px; padding: .7rem 1rem; font-size: .82rem; margin-bottom: 1rem; }
+    .modal-acciones { display: flex; gap: .8rem; justify-content: flex-end; margin-top: 1.4rem; flex-wrap: wrap; }
+    .form-ayuda { font-size: .72rem; color: var(--tm); margin-top: .25rem; }
+    .check-linea { display: flex; align-items: center; gap: .6rem; text-transform: none; letter-spacing: 0;
+                   font-size: .85rem; color: var(--tx); font-weight: 500; }
+    .clave-temporal { font-family: Consolas, monospace; font-size: 1.4rem; font-weight: 700; color: var(--gd);
+                      background: var(--gl); border: 1px dashed var(--g); border-radius: 12px;
+                      padding: .9rem; text-align: center; margin: 1rem 0; user-select: all; letter-spacing: .03em; }
+    .detalle-items { width: 100%; border-collapse: collapse; margin: .8rem 0; font-size: .85rem; }
+    .detalle-items td { padding: .4rem 0; border-bottom: 1px solid var(--g2); }
+    .detalle-totales div { display: flex; justify-content: space-between; font-size: .85rem; padding: .2rem 0; }
+    .detalle-totales .total { font-weight: 800; font-size: 1rem; border-top: 1px solid var(--bd); margin-top: .3rem; padding-top: .5rem; }
+    [hidden] { display: none !important; }
   </style>
 </head>
 <body>
@@ -539,6 +591,9 @@
     </a>
     <div class="user-info">
       <span class="user-badge" id="userBadge"></span>
+      <button onclick="cambiarMiClave()" class="btn btn-ghost" title="Cambiar mi contraseña">
+        <i class="ti ti-key"></i><span class="ocultar-movil"> Contraseña</span>
+      </button>
       <button onclick="doLogout()" class="btn btn-ghost">
         <i class="ti ti-logout"></i> Salir
       </button>
@@ -546,632 +601,181 @@
   </div>
 </nav>
 
-<!-- ========== ADMIN LAYOUT ========== -->
 <div class="admin-layout">
-  
+
   <!-- SIDEBAR -->
   <aside class="sidebar">
     <div class="sidebar-header">
       <h3>Panel de Control</h3>
-      <p>Administración completa</p>
+      <p>Administración</p>
     </div>
-    <ul class="sidebar-nav">
-      <li><a href="#" onclick="showSection('dashboard')" class="active" id="nav-dashboard">
-        <i class="ti ti-dashboard"></i> Dashboard
-      </a></li>
-      <li><a href="#" onclick="showSection('pedidos')" id="nav-pedidos">
-        <i class="ti ti-shopping-cart"></i> Pedidos Activos
-      </a></li>
-      <li><a href="#" onclick="showSection('menu')" id="nav-menu">
-        <i class="ti ti-tools-kitchen-2"></i> Gestionar Menú
-      </a></li>
-      <li><a href="#" onclick="showSection('reportes')" id="nav-reportes">
-        <i class="ti ti-chart-bar"></i> Reportes
-      </a></li>
+    <ul class="sidebar-nav" id="menuLateral">
+      <li><a href="#dashboard" data-seccion="dashboard"><i class="ti ti-dashboard"></i> Dashboard</a></li>
+      <li><a href="#pedidos" data-seccion="pedidos"><i class="ti ti-shopping-cart"></i> Pedidos</a></li>
+      <li><a href="#carta" data-seccion="carta"><i class="ti ti-tools-kitchen-2"></i> Carta</a></li>
+      <li><a href="#categorias" data-seccion="categorias"><i class="ti ti-category"></i> Categorías</a></li>
+      <li><a href="#mesas" data-seccion="mesas"><i class="ti ti-armchair"></i> Mesas</a></li>
+      <li><a href="#personal" data-seccion="personal"><i class="ti ti-users"></i> Personal</a></li>
+      <li><a href="#cupones" data-seccion="cupones"><i class="ti ti-discount-2"></i> Cupones</a></li>
+      <li><a href="#reportes" data-seccion="reportes"><i class="ti ti-chart-bar"></i> Reportes</a></li>
     </ul>
     <div class="sidebar-footer">
-      <a href="menu.html?mesa=admin" class="btn btn-secondary" style="width: 100%; justify-content: center;">
-        <i class="ti ti-eye"></i> Ver Menú Público
+      <a href="menu.html" target="_blank" rel="noopener" class="btn btn-secondary" style="width: 100%; justify-content: center;">
+        <i class="ti ti-eye"></i> Ver carta pública
       </a>
     </div>
   </aside>
 
-  <!-- MAIN CONTENT -->
   <main class="admin-main">
-    
-    <!-- ========== SECCIÓN DASHBOARD ========== -->
-    <section id="sec-dashboard">
+
+    <!-- ========== DASHBOARD ========== -->
+    <section id="sec-dashboard" class="seccion">
       <div class="top-bar">
         <div class="page-title">
           <h1>Dashboard</h1>
           <p id="fechaHoy"></p>
         </div>
-        <button onclick="seedDemoOrders()" class="btn btn-secondary">
-          <i class="ti ti-plus"></i> Generar Pedidos Demo
-        </button>
+        <button onclick="cargarDashboard()" class="btn btn-secondary"><i class="ti ti-refresh"></i> Actualizar</button>
       </div>
-
       <div class="stats-grid" id="statsGrid"></div>
-
-      <div class="panel">
-        <div class="panel-header">
-          <h3><i class="ti ti-clock"></i> Pedidos Recientes</h3>
-          <button onclick="showSection('pedidos')" class="btn btn-ghost" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
-            Ver todos <i class="ti ti-arrow-right"></i>
-          </button>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.2rem">
+        <div class="panel">
+          <div class="panel-header">
+            <h3><i class="ti ti-clock"></i> Pedidos recientes</h3>
+            <a href="#pedidos" class="btn btn-ghost btn-sm">Ver todos <i class="ti ti-arrow-right"></i></a>
+          </div>
+          <div class="panel-body" id="recentOrders"></div>
         </div>
-        <div class="panel-body" id="recentOrders"></div>
+        <div class="panel">
+          <div class="panel-header"><h3><i class="ti ti-chart-pie"></i> Ventas por categoría</h3></div>
+          <div class="panel-body" id="ventasCategoria"></div>
+        </div>
       </div>
     </section>
 
-    <!-- ========== SECCIÓN PEDIDOS ========== -->
-    <section id="sec-pedidos" style="display: none;">
+    <!-- ========== PEDIDOS ========== -->
+    <section id="sec-pedidos" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">
-          <h1>Pedidos Activos</h1>
-          <p>Gestión de pedidos en tiempo real</p>
+          <h1>Pedidos</h1>
+          <p>Consulta, cambia el estado y registra el método de pago</p>
         </div>
-        <select id="filterEstado" onchange="renderPedidos()" class="form-select" style="width: auto;">
-          <option value="all">Todos los estados</option>
-          <option value="pendiente">⏳ Pendiente</option>
-          <option value="en_preparacion">🔥 En Preparación</option>
-          <option value="listo">✅ Listo</option>
-          <option value="entregado">✓ Entregado</option>
-        </select>
+        <div class="filtros">
+          <input type="date" id="fPedFecha" class="form-input" aria-label="Fecha">
+          <select id="fPedEstado" class="form-select" aria-label="Estado">
+            <option value="">Todos los estados</option>
+            <option value="pendiente,en_preparacion,listo">En curso</option>
+            <option value="pendiente">Pendiente</option>
+            <option value="en_preparacion">En preparación</option>
+            <option value="listo">Listo</option>
+            <option value="entregado">Entregado</option>
+            <option value="cancelado">Cancelado</option>
+          </select>
+          <input type="number" id="fPedMesa" class="form-input" placeholder="Mesa" min="1" style="min-width:90px;width:90px" aria-label="Mesa">
+          <input type="search" id="fPedNumero" class="form-input" placeholder="N.º de pedido" aria-label="Número de pedido">
+          <button class="btn btn-secondary" onclick="limpiarFiltrosPedidos()"><i class="ti ti-filter-off"></i></button>
+        </div>
       </div>
-
-      <div class="panel">
-        <div class="panel-body" id="pedidosList"></div>
-      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="pedidosList"></div></div>
     </section>
 
-    <!-- ========== SECCIÓN MENÚ ========== -->
-    <section id="sec-menu" style="display: none;">
+    <!-- ========== CARTA ========== -->
+    <section id="sec-carta" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">
-          <h1>Gestionar Menú</h1>
-          <p>CRUD completo de productos</p>
+          <h1>Carta</h1>
+          <p>Productos, precios y disponibilidad</p>
         </div>
-        <button onclick="openProductModal()" class="btn btn-primary">
-          <i class="ti ti-plus"></i> Nuevo Producto
-        </button>
+        <button onclick="formProducto()" class="btn btn-primary"><i class="ti ti-plus"></i> Nuevo producto</button>
       </div>
-
       <div class="panel">
-        <div class="panel-header">
-          <h3><i class="ti ti-search"></i> Buscar producto</h3>
-        </div>
-        <div class="panel-body">
-          <input type="search" id="menuSearch" class="form-input" placeholder="🔍 Buscar por nombre o categoría..." oninput="renderProductsTable()">
+        <div class="panel-body filtros">
+          <input type="search" id="fProdTexto" class="form-input" placeholder="Buscar producto…" style="flex:1" aria-label="Buscar producto">
+          <select id="fProdCategoria" class="form-select" aria-label="Categoría"></select>
         </div>
       </div>
-
-      <div class="panel">
-        <div class="panel-body" style="overflow-x: auto;">
-          <table class="data-table">
-            <thead>
-              <tr><th>ID</th><th>Producto</th><th>Categoría</th><th>Precio</th><th>Estado</th><th>Acciones</th></tr>
-            </thead>
-            <tbody id="menuTableBody"></tbody>
-          </table>
-        </div>
-      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="productosTabla"></div></div>
     </section>
 
-    <!-- ========== SECCIÓN REPORTES ========== -->
-    <section id="sec-reportes" style="display: none;">
+    <!-- ========== CATEGORÍAS ========== -->
+    <section id="sec-categorias" class="seccion" hidden>
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Categorías</h1>
+          <p>Secciones de la carta y su orden</p>
+        </div>
+        <button onclick="formCategoria()" class="btn btn-primary"><i class="ti ti-plus"></i> Nueva categoría</button>
+      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="categoriasTabla"></div></div>
+    </section>
+
+    <!-- ========== MESAS ========== -->
+    <section id="sec-mesas" class="seccion" hidden>
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Mesas</h1>
+          <p>Mesas del restaurante y su estado</p>
+        </div>
+        <button onclick="formMesa()" class="btn btn-primary"><i class="ti ti-plus"></i> Nueva mesa</button>
+      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="mesasTabla"></div></div>
+    </section>
+
+    <!-- ========== PERSONAL ========== -->
+    <section id="sec-personal" class="seccion" hidden>
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Personal</h1>
+          <p>Usuarios que ingresan al sistema</p>
+        </div>
+        <button onclick="formUsuario()" class="btn btn-primary"><i class="ti ti-user-plus"></i> Nuevo usuario</button>
+      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="personalTabla"></div></div>
+    </section>
+
+    <!-- ========== CUPONES ========== -->
+    <section id="sec-cupones" class="seccion" hidden>
+      <div class="top-bar">
+        <div class="page-title">
+          <h1>Cupones</h1>
+          <p>Códigos de descuento para los comensales</p>
+        </div>
+        <button onclick="formCupon()" class="btn btn-primary"><i class="ti ti-plus"></i> Nuevo cupón</button>
+      </div>
+      <div class="panel"><div class="panel-body tabla-scroll" id="cuponesTabla"></div></div>
+    </section>
+
+    <!-- ========== REPORTES ========== -->
+    <section id="sec-reportes" class="seccion" hidden>
       <div class="top-bar">
         <div class="page-title">
           <h1>Reportes</h1>
-          <p>Estadísticas y análisis del negocio</p>
+          <p>Ventas de pedidos entregados</p>
         </div>
       </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.2rem;">
-        <div class="panel">
-          <div class="panel-header"><h3><i class="ti ti-chart-pie"></i> Ventas por Categoría</h3></div>
-          <div class="panel-body" id="catReport"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><h3><i class="ti ti-chart-donut"></i> Estados de Pedidos</h3></div>
-          <div class="panel-body" id="estadoReport"></div>
-        </div>
-        <div class="panel">
-          <div class="panel-header"><h3><i class="ti ti-summary"></i> Resumen General</h3></div>
-          <div class="panel-body" id="generalReport"></div>
-        </div>
+      <div class="panel">
+        <div class="panel-header"><h3><i class="ti ti-chart-pie"></i> Ventas por categoría (histórico)</h3></div>
+        <div class="panel-body" id="reporteCategorias"></div>
       </div>
     </section>
 
   </main>
 </div>
 
-<!-- ========== MODAL DE PRODUCTOS ========== -->
-<div id="productModal" class="modal-overlay" onclick="closeProductModal(event)">
-  <div class="modal-box" onclick="event.stopPropagation()">
-    <button class="modal-close" onclick="closeProductModal()">✕</button>
-    <h2 id="modalProdTitle" style="margin-bottom: 0.5rem;">Nuevo Producto</h2>
-    <p id="modalProdSub" style="color: var(--tm); margin-bottom: 1.5rem;">Completa los datos del producto</p>
-
-    <form id="productForm" onsubmit="return saveProduct(event)">
-      <input type="hidden" name="action" id="prodAction" value="crear">
-      <input type="hidden" name="id" id="prodId" value="">
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nombre del Producto *</label>
-          <input type="text" id="prodNombre" class="form-input" placeholder="Ej: Bandeja Paisa" required>
-        </div>
-        <div class="form-group">
-          <label>Emoji/Ícono</label>
-          <input type="text" id="prodEmoji" class="form-input" placeholder="🍛" maxlength="4">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group">
-          <label>Categoría *</label>
-          <select id="prodCat" class="form-select" required>
-            <option value="">Seleccionar...</option>
-            <option value="Entradas">🍢 Entradas</option>
-            <option value="Principales">🍽 Principales</option>
-            <option value="Bebidas">🥤 Bebidas</option>
-            <option value="Postres">🍰 Postres</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Precio (COP) *</label>
-          <input type="number" id="prodPrecio" class="form-input" placeholder="25000" min="1000" required>
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Descripción</label>
-        <textarea id="prodDesc" class="form-textarea" rows="3" placeholder="Descripción del plato..."></textarea>
-      </div>
-
-      <div style="display: flex; gap: 1rem; justify-content: flex-end; margin-top: 1.5rem;">
-        <button type="button" onclick="closeProductModal()" class="btn btn-ghost">Cancelar</button>
-        <button type="submit" class="btn btn-primary">Guardar Producto</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ========== MODAL DE CONFIRMACIÓN ========== -->
-<div id="deleteModal" class="modal-overlay" onclick="closeDeleteModal(event)">
-  <div class="modal-box" style="max-width: 400px; text-align: center;" onclick="event.stopPropagation()">
-    <div style="font-size: 4rem; margin-bottom: 1rem;">⚠️</div>
-    <h3 style="margin-bottom: 0.5rem;">¿Eliminar producto?</h3>
-    <p style="color: var(--tm); margin-bottom: 1.5rem;">Esta acción no se puede deshacer.</p>
-    <div style="display: flex; gap: 1rem; justify-content: center;">
-      <button onclick="closeDeleteModal()" class="btn btn-ghost">Cancelar</button>
-      <button id="confirmDeleteBtn" class="btn btn-danger">Sí, eliminar</button>
-    </div>
+<!-- ========== MODAL GENÉRICO ========== -->
+<div id="modal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+  <div class="modal-box">
+    <button class="modal-close" onclick="cerrarModal()" aria-label="Cerrar">✕</button>
+    <h2 id="modalTitulo"></h2>
+    <p class="modal-sub" id="modalSub"></p>
+    <div class="modal-error" id="modalError" role="alert"></div>
+    <div id="modalCuerpo"></div>
+    <div class="modal-acciones" id="modalAcciones"></div>
   </div>
 </div>
 
 <script src="js/main.js"></script>
 <script src="js/api.js"></script>
-
-<script>
-  // ============================================================
-  // VERIFICACIÓN DE AUTENTICACIÓN
-  // ============================================================
-  // El servidor valida la sesión; solo el Administrador entra aquí.
-  const sesionLista = requerirSesion(['Administrador']).then(user => {
-    document.getElementById('userBadge').innerHTML =
-      `<i class="ti ti-user"></i> ${esc(user.nombre)} · ${esc(user.rol)}`;
-    return user;
-  });
-  document.getElementById('fechaHoy').textContent = new Date().toLocaleDateString('es-CO', { 
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-  });
-
-  // ============================================================
-  // NAVEGACIÓN ENTRE SECCIONES
-  // ============================================================
-  function showSection(name) {
-    const sections = ['dashboard', 'pedidos', 'menu', 'reportes'];
-    sections.forEach(s => {
-      const sec = document.getElementById('sec-' + s);
-      if (sec) sec.style.display = 'none';
-      const nav = document.getElementById('nav-' + s);
-      if (nav) nav.classList.remove('active');
-    });
-    
-    document.getElementById('sec-' + name).style.display = 'block';
-    const activeNav = document.getElementById('nav-' + name);
-    if (activeNav) activeNav.classList.add('active');
-    
-    // Cargar datos específicos
-    if (name === 'dashboard') renderDashboard();
-    if (name === 'pedidos') renderPedidos();
-    if (name === 'menu') renderProductsTable();
-    if (name === 'reportes') renderReportes();
-  }
-
-  // ============================================================
-  // DASHBOARD
-  // ============================================================
-  function renderDashboard() {
-    const pedidos = getPedidos();
-    const hoy = new Date().toDateString();
-    const pedidosHoy = pedidos.filter(p => new Date(p.fecha).toDateString() === hoy);
-    const totalVentas = pedidosHoy.reduce((s, p) => s + (p.total || 0), 0);
-    const activos = pedidos.filter(p => ['pendiente', 'en_preparacion', 'listo'].includes(p.estado)).length;
-    const productosActivos = getProductos().filter(p => p.disponible).length;
-
-    document.getElementById('statsGrid').innerHTML = `
-      <div class="stat-card">
-        <div class="stat-icon">📋</div>
-        <div class="stat-num">${pedidosHoy.length}</div>
-        <div class="stat-label">Pedidos hoy</div>
-      </div>
-      <div class="stat-card highlight">
-        <div class="stat-icon">💰</div>
-        <div class="stat-num">${formatCOP(totalVentas)}</div>
-        <div class="stat-label">Ventas hoy</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🔥</div>
-        <div class="stat-num">${activos}</div>
-        <div class="stat-label">Pedidos activos</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🍽</div>
-        <div class="stat-num">${productosActivos}</div>
-        <div class="stat-label">Platos disponibles</div>
-      </div>
-    `;
-
-    const recent = [...pedidos].reverse().slice(0, 5);
-    if (!recent.length) {
-      document.getElementById('recentOrders').innerHTML = `
-        <div style="text-align: center; padding: 3rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-          <p style="color: var(--tm);">No hay pedidos aún</p>
-          <button onclick="seedDemoOrders()" class="btn btn-secondary" style="margin-top: 1rem;">
-            <i class="ti ti-plus"></i> Generar pedidos demo
-          </button>
-        </div>
-      `;
-      return;
-    }
-
-    document.getElementById('recentOrders').innerHTML = recent.map(p => `
-      <div class="order-item">
-        <div class="order-info">
-          <div class="order-num"><i class="ti ti-receipt"></i> ${p.numero}</div>
-          <div class="order-table"><i class="ti ti-armchair"></i> Mesa #${p.mesa}</div>
-          <div class="order-time"><i class="ti ti-clock"></i> ${formatFecha(p.fecha)}</div>
-        </div>
-        <span class="badge-status badge-${p.estado.replace('_', '')}">
-          ${estadoLabel(p.estado)}
-        </span>
-        <div style="font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</div>
-      </div>
-    `).join('');
-  }
-
-  // ============================================================
-  // PEDIDOS
-  // ============================================================
-  function renderPedidos() {
-    const filter = document.getElementById('filterEstado')?.value || 'all';
-    let pedidos = [...getPedidos()].reverse();
-    if (filter !== 'all') pedidos = pedidos.filter(p => p.estado === filter);
-    
-    if (!pedidos.length) {
-      document.getElementById('pedidosList').innerHTML = `
-        <div style="text-align: center; padding: 3rem;">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-          <p style="color: var(--tm);">No hay pedidos con este estado</p>
-        </div>
-      `;
-      return;
-    }
-    
-    document.getElementById('pedidosList').innerHTML = pedidos.map(p => `
-      <div class="order-item" id="order-${p.id}">
-        <div class="order-info">
-          <div class="order-num"><i class="ti ti-receipt"></i> ${p.numero}</div>
-          <div class="order-table"><i class="ti ti-armchair"></i> Mesa #${p.mesa} · ${(p.items || []).length} item(s)</div>
-          <div class="order-time"><i class="ti ti-clock"></i> ${formatFecha(p.fecha)}</div>
-        </div>
-        <span class="badge-status badge-${p.estado.replace('_', '')}">
-          ${estadoLabel(p.estado)}
-        </span>
-        <div style="font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</div>
-        <div class="table-actions">
-          ${p.estado !== 'entregado' && p.estado !== 'cancelado' ? 
-            `<button onclick="cambiarEstado(${p.id})" class="btn btn-success" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
-              <i class="ti ti-arrow-right"></i> Avanzar
-            </button>` : ''}
-          <button onclick="verDetalle(${p.id})" class="btn btn-secondary" style="padding: 0.4rem 1rem; font-size: 0.75rem;">
-            <i class="ti ti-eye"></i> Ver
-          </button>
-        </div>
-      </div>
-    `).join('');
-  }
-
-  function estadoLabel(e) {
-    const map = { 
-      pendiente: '⏳ Pendiente', 
-      en_preparacion: '🔥 En Preparación', 
-      listo: '✅ Listo', 
-      entregado: '✓ Entregado', 
-      cancelado: '✕ Cancelado' 
-    };
-    return map[e] || e;
-  }
-
-  function cambiarEstado(id) {
-    const flow = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
-    const p = getPedidos().find(p => p.id === id);
-    if (!p) return;
-    const idx = flow.indexOf(p.estado);
-    if (idx < flow.length - 1) {
-      actualizarEstadoPedido(id, flow[idx + 1]);
-      renderPedidos();
-      showToast(`Pedido ${p.numero} → ${estadoLabel(flow[idx + 1])}`, 'success');
-    }
-  }
-
-  function verDetalle(id) {
-    const p = getPedidos().find(p => p.id === id);
-    if (!p) return;
-    
-    const items = (p.items || []).map(i => `
-      <tr>
-        <td style="padding: 0.5rem;">${i.emoji || '🍽'} ${i.nombre}</td>
-        <td style="text-align: center; padding: 0.5rem;">${i.qty}</td>
-        <td style="text-align: right; padding: 0.5rem;">${formatCOP(i.precio * i.qty)}</td>
-      </tr>
-    `).join('');
-    
-    const modalContent = `
-      <div style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 1rem;">
-        <div style="background: white; border-radius: 28px; max-width: 500px; width: 100%; padding: 2rem;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="font-family: 'Playfair Display', serif;">Detalle del Pedido</h3>
-            <button onclick="this.closest('div[style*=fixed]').remove()" style="background: none; border: none; font-size: 1.2rem; cursor: pointer;">✕</button>
-          </div>
-          <div style="margin-bottom: 1rem;">
-            <p><strong>Pedido:</strong> ${p.numero}</p>
-            <p><strong>Mesa:</strong> #${p.mesa}</p>
-            <p><strong>Fecha:</strong> ${formatFecha(p.fecha)}</p>
-            ${p.notas ? `<p><strong>Notas:</strong> ${p.notas}</p>` : ''}
-          </div>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 1rem;">
-            <thead><tr style="border-bottom: 1px solid var(--bd);"><th style="text-align: left; padding: 0.5rem;">Producto</th><th style="text-align: center;">Cant.</th><th style="text-align: right;">Subtotal</th></tr></thead>
-            <tbody>${items}</tbody>
-            <tfoot><tr style="border-top: 1px solid var(--bd);"><td colspan="2" style="padding: 0.8rem 0.5rem; font-weight: 700;">Total</td><td style="text-align: right; padding: 0.8rem 0.5rem; font-weight: 700; color: var(--g);">${formatCOP(p.total || 0)}</td></tr></tfoot>
-          </table>
-          <button onclick="this.closest('div[style*=fixed]').remove()" class="btn btn-primary" style="width: 100%; justify-content: center;">Cerrar</button>
-        </div>
-      </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalContent);
-  }
-
-  // ============================================================
-  // GESTIÓN DE MENÚ (CRUD)
-  // ============================================================
-  function renderProductsTable() {
-    const q = (document.getElementById('menuSearch')?.value || '').toLowerCase();
-    let prods = getProductos();
-    if (q) prods = prods.filter(p => p.nombre.toLowerCase().includes(q) || p.cat.toLowerCase().includes(q));
-    
-    document.getElementById('menuTableBody').innerHTML = prods.map(p => `
-      <tr>
-        <td style="color: var(--tm); font-size: 0.75rem;">#${p.id}</td>
-        <td><span style="font-size: 1.3rem; margin-right: 0.5rem;">${p.emoji || '🍽'}</span><strong>${p.nombre}</strong></td>
-        <td><span class="badge-status" style="background: rgba(0,102,51,0.1); color: var(--g);">${p.cat}</span></td>
-        <td style="font-weight: 700; color: var(--g);">${formatCOP(p.precio)}</td>
-        <td><span class="badge-status ${p.disponible ? 'badge-listo' : 'badge-pendiente'}">${p.disponible ? '✓ Disponible' : '✕ Inactivo'}</span></td>
-        <td>
-          <div class="table-actions">
-            <button onclick="toggleDisponible(${p.id})" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">${p.disponible ? 'Pausar' : 'Activar'}</button>
-            <button onclick="openProductModal(${p.id})" class="btn btn-success" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Editar</button>
-            <button onclick="confirmDelete(${p.id})" class="btn btn-danger" style="padding: 0.3rem 0.8rem; font-size: 0.7rem;">Eliminar</button>
-          </div>
-        </td>
-      </tr>
-    `).join('');
-  }
-
-  function toggleDisponible(id) {
-    const prods = getProductos();
-    const p = prods.find(p => p.id === id);
-    if (p) {
-      editarProducto(id, { disponible: !p.disponible });
-      renderProductsTable();
-      showToast(`${p.nombre} ${!p.disponible ? 'activado' : 'pausado'}`, 'info');
-    }
-  }
-
-  function openProductModal(id) {
-    const modal = document.getElementById('productModal');
-    if (id) {
-      const p = getProductos().find(p => p.id === id);
-      if (!p) return;
-      document.getElementById('modalProdTitle').textContent = 'Editar Producto';
-      document.getElementById('modalProdSub').textContent = `Editando: ${p.nombre}`;
-      document.getElementById('prodAction').value = 'editar';
-      document.getElementById('prodId').value = id;
-      document.getElementById('prodNombre').value = p.nombre;
-      document.getElementById('prodEmoji').value = p.emoji || '';
-      document.getElementById('prodCat').value = p.cat;
-      document.getElementById('prodPrecio').value = p.precio;
-      document.getElementById('prodDesc').value = p.desc || '';
-    } else {
-      document.getElementById('modalProdTitle').textContent = 'Nuevo Producto';
-      document.getElementById('modalProdSub').textContent = 'Completa los datos del producto';
-      document.getElementById('prodAction').value = 'crear';
-      document.getElementById('prodId').value = '';
-      document.getElementById('productForm').reset();
-    }
-    modal.style.display = 'flex';
-  }
-
-  function closeProductModal(e) {
-    if (!e || e.target === document.getElementById('productModal') || e.target.classList?.contains('modal-close')) {
-      document.getElementById('productModal').style.display = 'none';
-    }
-  }
-
-  function saveProduct(e) {
-    e.preventDefault();
-    const action = document.getElementById('prodAction').value;
-    const id = document.getElementById('prodId').value;
-    const data = {
-      nombre: document.getElementById('prodNombre').value,
-      emoji: document.getElementById('prodEmoji').value || '🍽',
-      cat: document.getElementById('prodCat').value,
-      precio: parseInt(document.getElementById('prodPrecio').value),
-      desc: document.getElementById('prodDesc').value,
-      disponible: true
-    };
-    
-    if (action === 'crear') {
-      agregarProducto(data);
-      showToast(`✓ ${data.nombre} creado correctamente`, 'success');
-    } else {
-      editarProducto(parseInt(id), data);
-      showToast(`✓ ${data.nombre} actualizado correctamente`, 'success');
-    }
-    closeProductModal();
-    renderProductsTable();
-    return false;
-  }
-
-  function confirmDelete(id) {
-    const modal = document.getElementById('deleteModal');
-    modal.style.display = 'flex';
-    document.getElementById('confirmDeleteBtn').onclick = () => {
-      const producto = getProductos().find(p => p.id === id);
-      eliminarProducto(id);
-      modal.style.display = 'none';
-      renderProductsTable();
-      showToast(`${producto?.nombre || 'Producto'} eliminado`, 'info');
-    };
-  }
-
-  function closeDeleteModal(e) {
-    if (!e || e.target === document.getElementById('deleteModal')) {
-      document.getElementById('deleteModal').style.display = 'none';
-    }
-  }
-
-  // ============================================================
-  // REPORTES
-  // ============================================================
-  function renderReportes() {
-    const pedidos = getPedidos();
-    const productos = getProductos();
-
-    // Ventas por categoría
-    const catTotals = {};
-    pedidos.forEach(p => {
-      (p.items || []).forEach(i => {
-        const prod = productos.find(m => m.id === i.id);
-        const cat = prod?.cat || 'Otros';
-        catTotals[cat] = (catTotals[cat] || 0) + (i.precio * i.qty);
-      });
-    });
-    
-    const maxCat = Math.max(1, ...Object.values(catTotals));
-    document.getElementById('catReport').innerHTML = !Object.keys(catTotals).length ?
-      '<p style="text-align: center; padding: 2rem; color: var(--tm);">Sin datos aún</p>' :
-      Object.entries(catTotals).map(([cat, total]) => `
-        <div style="margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 0.3rem;">
-            <span>${cat}</span>
-            <strong style="color: var(--g);">${formatCOP(total)}</strong>
-          </div>
-          <div style="background: var(--bd); border-radius: 99px; height: 6px; overflow: hidden;">
-            <div style="height: 100%; background: linear-gradient(90deg, var(--g), var(--y)); width: ${(total / maxCat * 100).toFixed(1)}%; transition: width 0.6s;"></div>
-          </div>
-        </div>
-      `).join('');
-
-    // Estados de pedidos
-    const estCounts = {};
-    pedidos.forEach(p => { estCounts[p.estado] = (estCounts[p.estado] || 0) + 1; });
-    const estColors = { pendiente: '#ffc107', en_preparacion: '#0d6efd', listo: '#198754', entregado: '#6c757d' };
-    
-    document.getElementById('estadoReport').innerHTML = !Object.keys(estCounts).length ?
-      '<p style="text-align: center; padding: 2rem; color: var(--tm);">Sin datos aún</p>' :
-      Object.entries(estCounts).map(([est, cnt]) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.8rem 0; border-bottom: 1px solid var(--bd);">
-          <div style="display: flex; align-items: center; gap: 0.8rem;">
-            <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: ${estColors[est] || '#999'};"></span>
-            <span>${estadoLabel(est)}</span>
-          </div>
-          <strong style="font-size: 1.1rem;">${cnt}</strong>
-        </div>
-      `).join('');
-
-    // Resumen general
-    const totalVentas = pedidos.reduce((s, p) => s + (p.total || 0), 0);
-    const avgTicket = pedidos.length ? totalVentas / pedidos.length : 0;
-    
-    document.getElementById('generalReport').innerHTML = `
-      <div style="display: flex; flex-direction: column; gap: 0.8rem;">
-        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
-          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Total pedidos</div>
-          <div style="font-size: 2rem; font-weight: 800; font-family: 'Playfair Display', serif;">${pedidos.length}</div>
-        </div>
-        <div style="background: linear-gradient(135deg, var(--gl), transparent); border-radius: 16px; padding: 1rem;">
-          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Ingresos totales</div>
-          <div style="font-size: 1.5rem; font-weight: 800; color: var(--g);">${formatCOP(totalVentas)}</div>
-        </div>
-        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
-          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Ticket promedio</div>
-          <div style="font-size: 1.3rem; font-weight: 700;">${formatCOP(avgTicket)}</div>
-        </div>
-        <div style="background: var(--gl); border-radius: 16px; padding: 1rem;">
-          <div style="font-size: 0.7rem; text-transform: uppercase; color: var(--tm);">Productos activos</div>
-          <div style="font-size: 1.3rem; font-weight: 700;">${productos.filter(p => p.disponible).length}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  // ============================================================
-  // GENERAR PEDIDOS DEMO
-  // ============================================================
-  function seedDemoOrders() {
-    const mesas = [3, 5, 7, 12, 18];
-    const estados = ['pendiente', 'en_preparacion', 'listo', 'entregado'];
-    const productos = getProductos();
-    
-    mesas.forEach(m => {
-      const itemsAleatorios = [...productos].sort(() => 0.5 - Math.random()).slice(0, 3);
-      const items = itemsAleatorios.map(i => ({ ...i, qty: Math.ceil(Math.random() * 2) }));
-      const pedido = crearPedido(m, items, '');
-      actualizarEstadoPedido(pedido.id, estados[Math.floor(Math.random() * estados.length)]);
-    });
-    
-    renderDashboard();
-    showToast('✓ Pedidos demo generados correctamente', 'success');
-  }
-
-  // ============================================================
-  // INICIALIZACIÓN (después de validar la sesión)
-  // ============================================================
-  sesionLista.then(() => renderDashboard());
-
-  // Cerrar modales con ESC
-  document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
-      document.getElementById('productModal').style.display = 'none';
-      document.getElementById('deleteModal').style.display = 'none';
-    }
-  });
-</script>
-
+<script src="js/admin.js"></script>
 </body>
 </html>

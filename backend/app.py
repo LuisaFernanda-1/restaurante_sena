@@ -27,6 +27,7 @@ from db import DBDuplicado, DBError, DBReferencia
 from dinero import calcular_totales
 from errores import ErrorAPI
 from seguridad import ROL_ADMIN, ROL_CHEF, ROL_MESERO, requiere_rol, usuario_actual
+from validacion import arg_entero, cuerpo_json, jresp, v_bool, v_entero, v_texto
 
 logging.basicConfig(
     level=logging.INFO,
@@ -66,9 +67,9 @@ app.config.update(
     MAX_CONTENT_LENGTH=1024 * 1024,  # 1 MB por petición es más que suficiente
 )
 
-
-def jresp(data, status=200):
-    return app.json.response(data), status
+# Panel de administración: categorías, mesas, usuarios y cupones
+from admin_api import bp as admin_bp  # noqa: E402
+app.register_blueprint(admin_bp)
 
 
 # ============================================================
@@ -143,60 +144,6 @@ def _cabeceras_seguridad(resp):
     if request.path.startswith("/api/"):
         resp.headers.setdefault("Cache-Control", "no-store")
     return resp
-
-
-# ============================================================
-# VALIDACIÓN DE DATOS DE ENTRADA
-# ============================================================
-def cuerpo_json():
-    data = request.get_json(silent=True)
-    if not isinstance(data, dict):
-        raise ErrorAPI("El cuerpo de la petición debe ser un objeto JSON.")
-    return data
-
-
-def v_entero(valor, campo, minimo=None, maximo=None):
-    if isinstance(valor, bool):
-        raise ErrorAPI(f"{campo}: debe ser un número entero.")
-    if isinstance(valor, float) and valor.is_integer():
-        valor = int(valor)
-    if isinstance(valor, str) and re.fullmatch(r"\s*-?\d+\s*", valor):
-        valor = int(valor)
-    if not isinstance(valor, int):
-        raise ErrorAPI(f"{campo}: debe ser un número entero.")
-    if minimo is not None and valor < minimo:
-        raise ErrorAPI(f"{campo}: debe ser como mínimo {minimo}.")
-    if maximo is not None and valor > maximo:
-        raise ErrorAPI(f"{campo}: debe ser como máximo {maximo}.")
-    return valor
-
-
-def v_texto(valor, campo, max_len, obligatorio=False):
-    if valor is None:
-        valor = ""
-    if not isinstance(valor, str):
-        raise ErrorAPI(f"{campo}: debe ser texto.")
-    valor = valor.strip()
-    if obligatorio and not valor:
-        raise ErrorAPI(f"{campo}: es obligatorio.")
-    if len(valor) > max_len:
-        raise ErrorAPI(f"{campo}: máximo {max_len} caracteres.")
-    return valor
-
-
-def v_bool(valor, campo):
-    if isinstance(valor, bool):
-        return valor
-    if valor in (0, 1, "0", "1"):
-        return str(valor) == "1"
-    raise ErrorAPI(f"{campo}: debe ser verdadero o falso.")
-
-
-def arg_entero(nombre, defecto, minimo, maximo):
-    valor = request.args.get(nombre)
-    if valor in (None, ""):
-        return defecto
-    return v_entero(valor, nombre, minimo, maximo)
 
 
 # ============================================================
@@ -313,6 +260,19 @@ def cambiar_clave():
 # ============================================================
 @app.route("/api/categorias", methods=["GET"])
 def get_categorias():
+    """Carta: solo activas. ?todas=1 (administrador): también las inactivas."""
+    if request.args.get("todas") == "1":
+        u = usuario_actual()
+        if not u or u["rol"] != ROL_ADMIN or u["debe_cambiar_clave"]:
+            raise ErrorAPI("No tiene permiso para esta acción.", 403, "sin_permiso")
+        return jresp(db.consultar(
+            """SELECT c.id_categoria, c.nombre_categoria, c.descripcion, c.orden, c.activo,
+                      COUNT(p.id_producto) AS productos
+               FROM categorias c
+               LEFT JOIN productos p ON p.id_categoria = c.id_categoria AND p.activo = 1
+               GROUP BY c.id_categoria, c.nombre_categoria, c.descripcion, c.orden, c.activo
+               ORDER BY c.orden, c.nombre_categoria"""
+        ))
     rows = db.consultar(
         "SELECT id_categoria, nombre_categoria, descripcion, orden, activo "
         "FROM categorias WHERE activo = 1 ORDER BY orden, nombre_categoria"
@@ -339,11 +299,20 @@ def get_productos():
     cat = request.args.get("cat")
     q = request.args.get("q")
     sql = f"""
-        SELECT {COLUMNAS_PRODUCTO}
+        SELECT {COLUMNAS_PRODUCTO}, c.activo AS cat_activa
         FROM productos p
         JOIN categorias c ON p.id_categoria = c.id_categoria
-        WHERE p.activo = 1 AND c.activo = 1
+        WHERE p.activo = 1
     """
+    # La carta pública no muestra productos de categorías desactivadas;
+    # el administrador (?todas=1) los ve todos para poder gestionarlos.
+    todas = request.args.get("todas") == "1"
+    if todas:
+        u = usuario_actual()
+        if not u or u["rol"] != ROL_ADMIN or u["debe_cambiar_clave"]:
+            raise ErrorAPI("No tiene permiso para esta acción.", 403, "sin_permiso")
+    else:
+        sql += " AND c.activo = 1"
     params = []
     if cat:
         sql += " AND c.nombre_categoria = %s"
@@ -580,6 +549,10 @@ def get_pedidos():
         except ValueError:
             raise ErrorAPI("fecha: use el formato AAAA-MM-DD.")
         sql += " AND DATE(p.fecha_pedido) = %s"
+    numero = (request.args.get("numero") or "").strip()
+    if numero:
+        sql += " AND p.numero_pedido LIKE %s"
+        params.append(f"%{numero[:20]}%")
     orden = "ASC" if request.args.get("orden") == "asc" else "DESC"
     sql += f""" GROUP BY {COLUMNAS_PEDIDO}
                 ORDER BY p.fecha_pedido {orden}, p.id_pedido {orden} LIMIT %s"""

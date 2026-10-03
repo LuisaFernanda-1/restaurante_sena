@@ -13,6 +13,7 @@ seguridad.py — Contraseñas, sesiones y permisos por rol
 import hashlib
 import hmac
 import re
+import secrets
 import threading
 import time
 from functools import wraps
@@ -64,6 +65,15 @@ def validar_clave_nueva(nueva, usuario=""):
         raise ErrorAPI("La contraseña no puede contener el nombre de usuario.")
     if "temporal" in nueva.lower():
         raise ErrorAPI("Elija una contraseña distinta a la temporal.")
+
+
+_ALFABETO_CLAVE = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"  # sin 0/O, 1/l/I
+
+
+def generar_clave_temporal():
+    """Contraseña temporal aleatoria, fácil de dictar: p. ej. 'Temporal-Xk7p-9mQa'."""
+    bloque = lambda: "".join(secrets.choice(_ALFABETO_CLAVE) for _ in range(4))  # noqa: E731
+    return f"Temporal-{bloque()}-{bloque()}"
 
 
 def huella(hash_guardado):
