@@ -185,23 +185,28 @@ function abrir_sesion_existente(): bool
 function iniciar_sesion(array $usuario, bool $recordar = false): void
 {
     configurar_sesion();
-    if (session_status() !== PHP_SESSION_ACTIVE) {
-        session_start();
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        // Se descarta la sesión anterior (evita la fijación de sesión)
+        $_SESSION = [];
+        session_destroy();
     }
-    session_regenerate_id(true);   // evita la fijación de sesión
+    // Una sola cookie, con identificador nuevo. Con "Recordar sesión" dura
+    // 7 días aunque se cierre el navegador.
+    session_set_cookie_params([
+        'lifetime' => $recordar ? DURACION_SESION_RECORDADA : 0,
+        'path' => ruta_base_cookie(),
+        'secure' => es_https(),
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
+    session_id(session_create_id());
+    session_start();
     $_SESSION = [
         'user_id' => (int) $usuario['id_usuario'],
         'huella' => huella($usuario['contrasena_hash']),
         'expira' => time() + ($recordar ? DURACION_SESION_RECORDADA : DURACION_SESION),
         'recordar' => $recordar,
     ];
-    if ($recordar) {
-        // La cookie dura 7 días aunque se cierre el navegador
-        setcookie(session_name(), session_id(), [
-            'expires' => time() + DURACION_SESION_RECORDADA, 'path' => ruta_base_cookie(),
-            'secure' => es_https(), 'httponly' => true, 'samesite' => 'Lax',
-        ]);
-    }
 }
 
 function cerrar_sesion(): void

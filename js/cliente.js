@@ -173,3 +173,50 @@ async function llamarMesero() {
   });
   showToast(r.data.msg || "No se pudo avisar al mesero.", r.ok ? "success" : "error");
 }
+
+// ============================================================
+// SELECTOR DE MESAS ("Entrar sin QR"): botones con el número de cada
+// mesa activa, cargados desde la API. Lo usan index.html y mesas.html.
+// ============================================================
+const SelectorMesas = {
+  NOMBRES_ESTADO: { disponible: 'Libre', ocupada: 'Ocupada', reservada: 'Reservada' },
+
+  /**
+   * Pinta los botones en `contenedor`. alElegir(numero) se llama al tocar una mesa.
+   * Devuelve 'ok', 'deshabilitado' (PERMITIR_SIN_QR = false) o 'error'.
+   */
+  async pintar(contenedor, alElegir) {
+    contenedor.innerHTML = '<p class="selector-cargando">Cargando mesas…</p>';
+    const r = await apiFetch('/mesas/disponibles');
+    if (!r.ok) {
+      const p = document.createElement('p');
+      p.className = 'selector-error';
+      p.textContent = r.data.codigo === 'qr_requerido'
+        ? 'En este restaurante los pedidos se hacen escaneando el código QR de tu mesa.'
+        : (r.data.msg || 'No pudimos cargar las mesas.');
+      contenedor.replaceChildren(p);
+      return r.data.codigo === 'qr_requerido' ? 'deshabilitado' : 'error';
+    }
+    if (!r.data.length) {
+      contenedor.innerHTML = '<p class="selector-error">No hay mesas habilitadas en este momento.</p>';
+      return 'error';
+    }
+    contenedor.innerHTML = `<div class="selector-mesas">${r.data.map(m => `
+      <button class="selector-mesa" type="button" data-mesa="${m.numero_mesa}"
+              aria-label="Mesa ${m.numero_mesa}, ${m.capacidad} puestos, ${this.NOMBRES_ESTADO[m.estado] || m.estado}">
+        <span class="etq">Mesa</span>
+        <span class="num">${m.numero_mesa}</span>
+        <span class="etq">${m.capacidad} puestos</span>
+        <span class="estado ${esc(m.estado)}">${esc(this.NOMBRES_ESTADO[m.estado] || m.estado)}</span>
+      </button>`).join('')}</div>`;
+    contenedor.querySelectorAll('.selector-mesa').forEach(b =>
+      b.addEventListener('click', () => alElegir(Number(b.dataset.mesa))));
+    return 'ok';
+  },
+
+  /** Ir a la carta de una mesa elegida sin QR. */
+  entrar(numero) {
+    Mesa.olvidar();   // reemplaza cualquier mesa anterior (de QR o elegida)
+    window.location.href = `menu.html?mesa=${encodeURIComponent(numero)}`;
+  }
+};

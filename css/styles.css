@@ -774,3 +774,51 @@ em { font-style: italic; color: var(--accent); }
   .products-grid { grid-template-columns: 1fr; }
   .features-cards { grid-template-columns: 1fr 1fr; }
 }
+
+/* ============================================================
+   ENTRADAS DE LA PANTALLA DE BIENVENIDA: "Entrar con QR" / "Entrar sin QR"
+   ============================================================ */
+.entradas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 1rem; max-width: 560px; }
+.entradas.una { grid-template-columns: minmax(0, 1fr); max-width: 280px; }
+.entrada {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 6px; text-align: left;
+  min-height: 132px; padding: 18px 20px; border-radius: 18px; cursor: pointer; font-family: inherit;
+  background: var(--g, #006633); color: #fff; border: 2px solid var(--g, #006633);
+  box-shadow: 0 8px 24px rgba(0, 102, 51, .25); transition: transform .12s, box-shadow .2s, background .15s;
+}
+.entrada:hover, .entrada:focus-visible { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 102, 51, .32); outline: none; }
+.entrada.secundaria { background: #fff; color: var(--g, #006633); }
+.entrada i { font-size: 34px; }
+.entrada strong { font-size: 18px; }
+.entrada span { font-size: 13px; opacity: .85; line-height: 1.4; }
+.entrada-nota { font-size: 13px; color: var(--tm, #3a5544); margin-bottom: 1.6rem; }
+.entrada-nota a { color: var(--g, #006633); font-weight: 600; }
+@media (max-width: 480px) { .entrada { min-height: 120px; padding: 14px; } .entrada strong { font-size: 16px; } }
+
+/* Lector de QR con cámara */
+.lector-video-caja { position: relative; background: #0e1c12; border-radius: 16px; overflow: hidden; aspect-ratio: 1 / 1; margin: .8rem 0; }
+.lector-video-caja video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.lector-marco { position: absolute; inset: 18%; border: 3px solid var(--y, #FFD100); border-radius: 18px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); pointer-events: none; }
+.lector-mensaje { font-size: 14px; color: var(--tm, #3a5544); margin: .4rem 0 .8rem; min-height: 1.4em; }
+.lector-mensaje.error { color: #b3261e; background: #fdecea; border-radius: 10px; padding: .6rem .8rem; }
+.lector-acciones { display: flex; gap: .6rem; flex-wrap: wrap; }
+.lector-acciones > * { flex: 1 1 160px; justify-content: center; }
+
+/* Selector de mesas */
+.selector-mesas { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: .6rem; max-height: 55vh; overflow-y: auto; padding: 2px; }
+.selector-mesa {
+  background: #fff; border: 2px solid var(--bd, #c0d9c8); border-radius: 16px; padding: .7rem .4rem; cursor: pointer;
+  font-family: inherit; color: var(--tx, #0e1c12); display: flex; flex-direction: column; align-items: center; gap: .15rem;
+  transition: border-color .15s, transform .1s;
+}
+.selector-mesa:hover, .selector-mesa:focus-visible { border-color: var(--g, #006633); outline: none; }
+.selector-mesa:active { transform: scale(.97); }
+.selector-mesa .num { font-family: 'Playfair Display', serif; font-size: 1.8rem; font-weight: 900; color: var(--gd, #004d26); line-height: 1; }
+.selector-mesa .etq { font-size: 11px; color: var(--tm, #3a5544); }
+.selector-mesa .estado { font-size: 10.5px; font-weight: 700; border-radius: 10px; padding: 1px 7px; }
+.selector-mesa .estado.disponible { background: #e6f7ec; color: #2e7d32; }
+.selector-mesa .estado.ocupada { background: #fff4cc; color: #8a6500; }
+.selector-mesa .estado.reservada { background: #e8f0fe; color: #1e6f9f; }
+.selector-cargando, .selector-error { text-align: center; color: var(--tm, #3a5544); padding: 1.5rem .5rem; font-size: 14px; }
+.selector-confirmar { text-align: center; padding: .5rem 0; }
+.selector-confirmar .num { font-family: 'Playfair Display', serif; font-size: 3.4rem; font-weight: 900; color: var(--gd, #004d26); line-height: 1; margin: .3rem 0 .6rem; }

@@ -694,23 +694,25 @@
       <p class="hero-desc fade-up">
         Escanea el código QR de tu mesa, elige tus platos favoritos y sigue el estado de tu pedido en tiempo real. Sin filas, sin demoras.
       </p>
-      <div class="hero-btns fade-up">
-        <button class="btn-primary" onclick="openModal()">
+      <div class="entradas una fade-up" id="entradas">
+        <button class="entrada" type="button" id="btnEntrarQR" onclick="abrirLectorQR()">
           <i class="ti ti-qrcode" aria-hidden="true"></i>
-          Escanear el QR de mi mesa
+          <strong>Entrar con QR</strong>
+          <span>Lee con la cámara el código que está en tu mesa</span>
         </button>
-        <a href="mesas.html" class="btn-primary solo-sin-qr" hidden id="btnPedirSinQr">
+        <button class="entrada secundaria solo-sin-qr" type="button" id="btnEntrarSinQR" hidden onclick="abrirSinQR()">
           <i class="ti ti-armchair" aria-hidden="true"></i>
-          Pedir sin escanear
-        </a>
-        <a href="menu.html" class="btn-ghost">
-          <i class="ti ti-book" aria-hidden="true"></i>
-          Ver la carta
-        </a>
+          <strong>Entrar sin QR</strong>
+          <span>Elige el número de tu mesa en una lista</span>
+        </button>
       </div>
+      <p class="entrada-nota fade-up">
+        También puedes escanear el QR con la cámara normal de tu celular. ·
+        <a href="menu.html">Ver la carta sin pedir</a>
+      </p>
       <div class="hero-pills fade-up">
         <span class="pill-stat"><i class="ti ti-armchair" aria-hidden="true"></i> 50 mesas</span>
-        <span class="pill-stat"><i class="ti ti-users" aria-hidden="true"></i> 4 roles</span>
+        <span class="pill-stat"><i class="ti ti-users" aria-hidden="true"></i> 3 roles</span>
         <span class="pill-stat"><i class="ti ti-accessible" aria-hidden="true"></i> WCAG 2.1 AA</span>
       </div>
     </div>
@@ -913,51 +915,181 @@
     </div>
   </footer>
 
-  <!-- ══════════ MODAL MESA ══════════ -->
-  <div id="mesaModal" class="modal-overlay" onclick="if(event.target===this)closeModal()">
-    <div class="modal-box">
-      <button class="modal-close" onclick="closeModal()" aria-label="Cerrar">
+  <!-- ══════════ ENTRAR CON QR (cámara) ══════════ -->
+  <div id="lectorModal" class="modal-overlay" onclick="if(event.target===this)cerrarLectorQR()">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="tituloLector">
+      <button class="modal-close" onclick="cerrarLectorQR()" aria-label="Cerrar">
         <i class="ti ti-x" aria-hidden="true"></i>
       </button>
-      <h2>¿Cómo pedir?</h2>
-      <p>Cada mesa tiene su propio código QR.</p>
-      <ol style="margin: 0 0 1.4rem 1.2rem; line-height: 1.9; font-size: 14px;">
-        <li>Abre la <strong>cámara</strong> de tu celular.</li>
-        <li>Apunta al <strong>código QR</strong> que está en tu mesa.</li>
-        <li>Toca el enlace que aparece: se abrirá la carta con tu mesa.</li>
-        <li>Elige tus platos y pulsa <strong>Confirmar pedido</strong>.</li>
-      </ol>
-      <a href="mesas.html" class="btn-primary full-width solo-sin-qr" hidden style="text-decoration:none;margin-bottom:.6rem">
-        <i class="ti ti-armchair" aria-hidden="true"></i>
-        ¿No puedes escanear? Elige tu mesa
-      </a>
-      <a href="menu.html" class="btn-ghost full-width" style="text-decoration:none;justify-content:center">
-        <i class="ti ti-book" aria-hidden="true"></i>
-        Ver la carta sin pedir
-      </a>
+      <h2 id="tituloLector">Entrar con QR</h2>
+      <p>Apunta la cámara al código QR que está en tu mesa.</p>
+      <div class="lector-video-caja" id="lectorVideoCaja" hidden>
+        <video id="lectorVideo" muted playsinline aria-label="Vista de la cámara"></video>
+        <div class="lector-marco" aria-hidden="true"></div>
+      </div>
+      <p class="lector-mensaje" id="lectorMensaje" role="status" aria-live="polite"></p>
+      <div class="lector-acciones">
+        <label class="btn-ghost" for="lectorFoto" style="cursor:pointer">
+          <i class="ti ti-photo" aria-hidden="true"></i> Subir foto del QR
+        </label>
+        <input type="file" id="lectorFoto" accept="image/*" capture="environment" hidden>
+        <button class="btn-primary solo-sin-qr" type="button" hidden onclick="cerrarLectorQR(); abrirSinQR()">
+          <i class="ti ti-armchair" aria-hidden="true"></i> Entrar sin QR
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════ ENTRAR SIN QR (lista de mesas) ══════════ -->
+  <div id="sinQrModal" class="modal-overlay" onclick="if(event.target===this)cerrarSinQR()">
+    <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="tituloSinQr">
+      <button class="modal-close" onclick="cerrarSinQR()" aria-label="Cerrar">
+        <i class="ti ti-x" aria-hidden="true"></i>
+      </button>
+      <h2 id="tituloSinQr">¿En qué mesa estás?</h2>
+      <p id="sinQrAyuda">Toca el número de tu mesa. Si compartes mesa, elijan el mismo número.</p>
+      <div id="sinQrMesas"></div>
+      <div id="sinQrConfirmar" class="selector-confirmar" hidden>
+        <strong>¿Estás en la mesa…</strong>
+        <div class="num" id="sinQrNumero"></div>
+        <p style="margin-bottom:1rem">Tu pedido llegará a esta mesa.</p>
+        <div class="lector-acciones">
+          <button class="btn-ghost" type="button" onclick="volverSinQR()">Elegir otra</button>
+          <button class="btn-primary" type="button" id="btnConfirmarMesa" onclick="SelectorMesas.entrar(mesaElegida)">
+            <i class="ti ti-check" aria-hidden="true"></i> Sí, ver la carta
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 
   <!-- Scripts del proyecto -->
   <script src="js/main.js"></script>
   <script src="js/api.js"></script>
+  <script src="js/cliente.js"></script>
+  <script src="js/lector-qr.js"></script>
 
   <script>
-    /* Modal */
-    function openModal() {
-      document.getElementById('mesaModal').classList.add('open');
-    }
-    function closeModal() {
-      document.getElementById('mesaModal').classList.remove('open');
+    // ============================================================
+    // ENTRAR CON QR — cámara dentro de la página (jsQR)
+    // ============================================================
+    let configSitio = { server_url: '', pedido_sin_qr: false };
+
+    /** El lector (250 KB) se descarga solo cuando se necesita. */
+    function cargarLectorJs() {
+      if (typeof jsQR === 'function') return Promise.resolve();
+      return new Promise((resolver, rechazar) => {
+        const s = document.createElement('script');
+        s.src = 'js/vendor/jsQR.js';
+        s.onload = resolver;
+        s.onerror = () => rechazar(new Error('No se pudo cargar el lector de QR.'));
+        document.head.appendChild(s);
+      });
     }
 
-    /* "Pedir sin escanear" solo aparece si el restaurante lo permite (PERMITIR_PEDIDO_SIN_QR) */
-    apiFetch('/config').then(r => {
-      if (r.ok && r.data.pedido_sin_qr) {
-        document.querySelectorAll('.solo-sin-qr').forEach(el => { el.hidden = false; });
+    function mensajeLector(texto, error = false) {
+      const el = document.getElementById('lectorMensaje');
+      el.textContent = texto;
+      el.classList.toggle('error', error);
+    }
+
+    /** Procesa el texto de un QR leído: si es una mesa de este sitio, entra a su carta. */
+    function procesarCodigo(texto) {
+      try {
+        const datos = LectorQR.validarEnlace(texto, [window.location.href, configSitio.server_url]);
+        LectorQR.detener();
+        mensajeLector(`¡Mesa ${datos.mesa} encontrada! Abriendo la carta…`);
+        Mesa.olvidar();
+        window.location.href = LectorQR.urlMenu(datos);
+        return true;
+      } catch (e) {
+        mensajeLector(e.message, true);
+        return false;
+      }
+    }
+
+    async function abrirLectorQR() {
+      document.getElementById('lectorModal').classList.add('open');
+      document.getElementById('lectorVideoCaja').hidden = true;
+      mensajeLector('Abriendo la cámara…');
+      try {
+        await cargarLectorJs();
+        if (!LectorQR.camaraDisponible()) throw Object.assign(new Error(), { name: 'SecurityError' });
+        document.getElementById('lectorVideoCaja').hidden = false;
+        let ultimo = '';
+        await LectorQR.iniciar(document.getElementById('lectorVideo'), texto => {
+          if (texto !== ultimo) { ultimo = texto; procesarCodigo(texto); }
+        });
+        mensajeLector('Buscando el código QR…');
+      } catch (e) {
+        LectorQR.detener();
+        document.getElementById('lectorVideoCaja').hidden = true;
+        mensajeLector(LectorQR.mensajeError(e), true);
+      }
+    }
+
+    function cerrarLectorQR() {
+      LectorQR.detener();
+      document.getElementById('lectorModal').classList.remove('open');
+    }
+
+    document.getElementById('lectorFoto').addEventListener('change', async (e) => {
+      const archivo = e.target.files[0];
+      e.target.value = '';
+      if (!archivo) return;
+      mensajeLector('Leyendo la foto…');
+      try {
+        await cargarLectorJs();
+        const texto = await LectorQR.leerArchivo(archivo);
+        if (!texto) { mensajeLector('No encontramos un código QR en la foto. Intenta acercarte más.', true); return; }
+        procesarCodigo(texto);
+      } catch (err) {
+        mensajeLector(err.message, true);
       }
     });
-    document.addEventListener('keydown', e => {
+
+    // ============================================================
+    // ENTRAR SIN QR — lista de mesas (si el restaurante lo permite)
+    // ============================================================
+    let mesaElegida = null;
+
+    async function abrirSinQR() {
+      document.getElementById('sinQrModal').classList.add('open');
+      volverSinQR();
+      await SelectorMesas.pintar(document.getElementById('sinQrMesas'), numero => {
+        mesaElegida = numero;
+        document.getElementById('sinQrNumero').textContent = numero;
+        document.getElementById('sinQrMesas').hidden = true;
+        document.getElementById('sinQrAyuda').hidden = true;
+        document.getElementById('sinQrConfirmar').hidden = false;
+        document.getElementById('btnConfirmarMesa').focus();
+      });
+    }
+
+    function volverSinQR() {
+      mesaElegida = null;
+      document.getElementById('sinQrMesas').hidden = false;
+      document.getElementById('sinQrAyuda').hidden = false;
+      document.getElementById('sinQrConfirmar').hidden = true;
+    }
+
+    function cerrarSinQR() {
+      document.getElementById('sinQrModal').classList.remove('open');
+    }
+
+    // Compatibilidad con enlaces antiguos de la página
+    function openModal() { abrirLectorQR(); }
+    function closeModal() { cerrarLectorQR(); cerrarSinQR(); }
+
+    // Configuración del sitio: "Entrar sin QR" solo si el restaurante lo permite
+    apiFetch('/config').then(r => {
+      if (!r.ok) return;
+      configSitio = r.data;
+      if (r.data.pedido_sin_qr) {
+        document.querySelectorAll('.solo-sin-qr').forEach(el => { el.hidden = false; });
+        document.getElementById('entradas').classList.remove('una');
+      }
+    });    document.addEventListener('keydown', e => {
       if (e.key === 'Escape') closeModal();
     });
 

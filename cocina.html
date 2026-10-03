@@ -65,7 +65,7 @@
           <li><span class="cant">${i.cantidad}×</span><span>${esc(i.emoji || '')} ${esc(i.nombre)}</span></li>`).join('')}
         </ul>
         ${p.notas ? `<div class="notas"><strong>Nota:</strong> ${esc(p.notas)}</div>` : ''}
-        ${p.origen === 'manual' ? `<div class="sin-qr"><i class="ti ti-alert-triangle" aria-hidden="true"></i> Mesa elegida sin QR: confirma que es la mesa ${p.numero_mesa}</div>` : ''}
+        ${p.origen === 'manual' ? `<div class="sin-qr"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <strong>Sin QR</strong> · confirma que es la mesa ${p.numero_mesa}</div>` : ''}
         <div class="acciones">
           ${pendiente
             ? `<button class="boton primario" data-accion="en_preparacion"><i class="ti ti-flame"></i> Empezar</button>`

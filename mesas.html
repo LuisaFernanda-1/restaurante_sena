@@ -109,13 +109,11 @@
   <script src="js/api.js"></script>
   <script src="js/cliente.js"></script>
   <script>
-    const NOMBRES_ESTADO = { disponible: 'Libre', ocupada: 'Ocupada', reservada: 'Reservada' };
     let elegida = null;
 
     function mostrarConfirmacion(numero) {
       elegida = numero;
       document.getElementById('numConfirmar').textContent = numero;
-      document.getElementById('tituloConfirmar').textContent = '¿Estás en la mesa';
       document.getElementById('confirmacion').hidden = false;
       document.getElementById('btnConfirmar').focus();
     }
@@ -125,45 +123,20 @@
       elegida = null;
     }
 
-    function irAMesa() {
-      if (!elegida) return;
-      Mesa.olvidar();     // se reemplaza cualquier mesa anterior (de QR o elegida)
-      window.location.href = `menu.html?mesa=${encodeURIComponent(elegida)}`;
-    }
-
     document.getElementById('btnCancelar').addEventListener('click', cerrarConfirmacion);
-    document.getElementById('btnConfirmar').addEventListener('click', irAMesa);
+    document.getElementById('btnConfirmar').addEventListener('click', () => { if (elegida) SelectorMesas.entrar(elegida); });
     document.getElementById('confirmacion').addEventListener('click', e => { if (e.target.id === 'confirmacion') cerrarConfirmacion(); });
     document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarConfirmacion(); });
 
     (async () => {
-      const cont = document.getElementById('contenido');
-      const rc = await apiFetch('/config');
-      if (rc.ok && !rc.data.pedido_sin_qr) {
-        cont.innerHTML = `<div class="vacio"><i class="ti ti-qrcode" aria-hidden="true"></i>
-          <p style="margin-bottom:1.2rem">En este restaurante los pedidos se hacen <strong>escaneando el código QR</strong> de tu mesa.</p>
-          <a class="boton" href="index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al inicio</a></div>`;
-        return;
+      const estado = await SelectorMesas.pintar(document.getElementById('contenido'), mostrarConfirmacion);
+      document.getElementById('ayuda').hidden = estado !== 'ok';
+      if (estado === 'deshabilitado') {
+        const volver = document.createElement('p');
+        volver.style.textAlign = 'center';
+        volver.innerHTML = '<a class="boton" href="index.html"><i class="ti ti-arrow-left" aria-hidden="true"></i> Volver al inicio</a>';
+        document.getElementById('contenido').appendChild(volver);
       }
-      const r = await apiFetch('/mesas/disponibles');
-      if (!r.ok) {
-        cont.innerHTML = `<div class="vacio"><i class="ti ti-wifi-off" aria-hidden="true"></i><p></p></div>`;
-        cont.querySelector('p').textContent = r.data.msg || 'No pudimos cargar las mesas.';
-        return;
-      }
-      if (!r.data.length) {
-        cont.innerHTML = '<div class="vacio"><i class="ti ti-armchair" aria-hidden="true"></i>No hay mesas habilitadas en este momento.</div>';
-        return;
-      }
-      document.getElementById('ayuda').hidden = false;
-      cont.innerHTML = `<div class="rejilla">${r.data.map(m => `
-        <button class="mesa" type="button" data-mesa="${m.numero_mesa}" aria-label="Mesa ${m.numero_mesa}, ${m.capacidad} puestos, ${NOMBRES_ESTADO[m.estado] || m.estado}">
-          <span class="etq">Mesa</span>
-          <span class="num">${m.numero_mesa}</span>
-          <span class="etq"><i class="ti ti-users" aria-hidden="true"></i> ${m.capacidad} puestos</span>
-          <span class="estado ${esc(m.estado)}">${esc(NOMBRES_ESTADO[m.estado] || m.estado)}</span>
-        </button>`).join('')}</div>`;
-      cont.querySelectorAll('.mesa').forEach(b => b.addEventListener('click', () => mostrarConfirmacion(Number(b.dataset.mesa))));
     })();
   </script>
 </body>

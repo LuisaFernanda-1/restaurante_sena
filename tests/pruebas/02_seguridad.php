@@ -209,3 +209,15 @@ prueba('cabeceras de seguridad en la API', function (): void {
     igual('SAMEORIGIN', $r->cabecera('x-frame-options'));
     igual('no-store', $r->cabecera('cache-control'));
 });
+
+prueba('el inicio de sesión envía una sola cookie de sesión', function (): void {
+    foreach ([false, true] as $recordar) {
+        $r = login(cliente(), 'admin', CLAVES['admin'], $recordar);
+        igual(1, substr_count((string) $r->cabecera('set-cookie'), 'restaurante_sesion='), $recordar ? 'con recordar' : 'sin recordar');
+    }
+    $c = cliente();
+    login($c, 'chef', CLAVES['chef']);
+    $r = $c->post('/api/auth/cambiar-clave', ['actual' => CLAVES['chef'], 'nueva' => 'Cocina2026segura']);
+    igual(1, substr_count((string) $r->cabecera('set-cookie'), 'restaurante_sesion='), 'al cambiar la clave');
+    igual(200, $c->get('/api/mesas')->status, 'la sesión nueva funciona');
+});

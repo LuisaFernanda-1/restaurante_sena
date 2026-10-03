@@ -84,6 +84,7 @@ function ruta_actual(): string
 require __DIR__ . '/rutas/publico.php';
 require __DIR__ . '/rutas/auth.php';
 require __DIR__ . '/rutas/mesas.php';
+require __DIR__ . '/rutas/pedidos.php';
 
 try {
     verificar_origen();

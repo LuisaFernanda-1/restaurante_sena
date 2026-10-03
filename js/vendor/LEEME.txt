@@ -1,0 +1,12 @@
+Librerías de terceros incluidas en el proyecto (copiadas aquí, sin CDN,
+para que el sistema funcione sin depender de servidores externos).
+
+1. jsQR 1.4.0 — lectura de códigos QR con la cámara (index.html)
+   https://github.com/cozmo/jsQR
+   Licencia: Apache 2.0 (ver LICENCIA-jsQR.txt)
+   Archivo: jsQR.js (copia sin cambios de dist/jsQR.js del paquete npm "jsqr")
+
+2. qrcode-generator 2.0.4 — generación de códigos QR (panel y comprobante)
+   https://github.com/kazuhikoarase/qrcode-generator
+   Licencia: MIT (ver LICENCIA-qrcode-generator.txt)
+   Archivo: qrcode-generator.js (copia sin cambios de dist/qrcode.js del paquete npm "qrcode-generator")
