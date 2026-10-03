@@ -1,7 +1,7 @@
 /**
  * admin.js — Panel de administración de Restaurante SENA
  *
- * Todo se lee y se guarda en el servidor (API Flask + MySQL).
+ * Todo se lee y se guarda en el servidor (API PHP + MySQL).
  * Secciones: dashboard, pedidos, carta, categorías, mesas, personal,
  * cupones y reportes.
  */

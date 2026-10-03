@@ -775,8 +775,8 @@
       <div class="aviso-qr" id="avisoServerUrl" hidden>
         <i class="ti ti-alert-triangle"></i>
         <div><strong id="avisoServerUrlTitulo"></strong><br>
-        Los celulares no podrán abrir la carta. Antes de imprimir, ponga en <code>backend/.env</code> la IP fija del servidor
-        (por ejemplo <code>SERVER_URL=http://192.168.1.10:8000</code>) y reinicie el servidor. Vea el README.</div>
+        Los celulares no podrán abrir la carta. Antes de imprimir, ponga en <code>api/config.local.php</code> la dirección definitiva
+        (por ejemplo <code>https://restaurante.midominio.com</code> o, en red local, <code>http://192.168.1.10/restaurante</code>) en <code>SERVER_URL</code>. Vea el README.</div>
       </div>
       <div class="panel"><div class="panel-body tabla-scroll" id="mesasTabla"></div></div>
     </section>

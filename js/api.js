@@ -1,5 +1,5 @@
 /**
- * api.js — Conector del frontend con el backend Flask
+ * api.js — Conector del frontend con la API PHP
  * GA7-220501096-AA2-EV02 — Restaurante SENA
  *
  * Todas las páginas hablan con el servidor por aquí (fetch a /api/...).
